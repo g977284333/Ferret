@@ -40,28 +40,38 @@ def run_scrape_task(task_id, keywords, data_source, limit_per_keyword):
         all_apps = []
         seen_app_ids = set()  # 去重
         
-        for keyword in keywords:
+        for idx, keyword in enumerate(keywords):
+            print(f"[任务 {task_id}] 开始采集关键词: {keyword} ({idx+1}/{len(keywords)})")
             tasks[task_id]['progress']['current_keyword'] = keyword
+            tasks[task_id]['progress']['current_progress'] = f"0/{limit_per_keyword}"
+            print(f"[任务 {task_id}] 更新进度: {tasks[task_id]['progress']}")
+            
             apps = scraper.search_apps(keyword, limit=limit_per_keyword)
+            print(f"[任务 {task_id}] 关键词 {keyword} 采集到 {len(apps)} 个App")
             
             # 去重
+            new_apps = []
             for app in apps:
                 app_id = app.get('trackId')
                 if app_id and app_id not in seen_app_ids:
                     seen_app_ids.add(app_id)
                     all_apps.append(app)
+                    new_apps.append(app)
             
-            tasks[task_id]['progress']['completed'] += len(apps)
-            tasks[task_id]['progress']['current_progress'] = f"{len(apps)}/{limit_per_keyword}"
+            tasks[task_id]['progress']['completed'] += len(new_apps)
+            tasks[task_id]['progress']['current_progress'] = f"{len(new_apps)}/{limit_per_keyword}"
+            print(f"[任务 {task_id}] 当前进度: 已完成 {tasks[task_id]['progress']['completed']}/{tasks[task_id]['progress']['total']}, 当前关键词: {len(new_apps)}/{limit_per_keyword}")
         
         # 保存原始数据到数据库
         if all_apps:
+            print(f"任务 {task_id} 保存 {len(all_apps)} 个App到数据库")
             data_manager.save_raw_data(all_apps, 'app_store')
         
         # 保存JSON文件
         scraper.save_apps(all_apps)
         
         # 分析机会
+        print(f"任务 {task_id} 开始分析机会")
         df = analyzer.analyze_opportunities(all_apps)
         
         # 保存机会到数据库
@@ -70,15 +80,25 @@ def run_scrape_task(task_id, keywords, data_source, limit_per_keyword):
             data_manager.save_opportunity(row.to_dict())
             opportunities_count += 1
         
+        # 更新最终进度
+        tasks[task_id]['progress']['completed'] = len(all_apps)
+        tasks[task_id]['progress']['current_keyword'] = '完成'
+        tasks[task_id]['progress']['current_progress'] = f"{len(all_apps)}/{len(all_apps)}"
+        
         tasks[task_id]['status'] = 'completed'
         tasks[task_id]['results'] = {
             'apps_collected': len(all_apps),
             'opportunities_found': opportunities_count
         }
+        print(f"任务 {task_id} 完成: 采集 {len(all_apps)} 个App, 发现 {opportunities_count} 个机会")
         
     except Exception as e:
+        import traceback
+        error_msg = str(e)
+        traceback.print_exc()
+        print(f"任务 {task_id} 出错: {error_msg}")
         tasks[task_id]['status'] = 'error'
-        tasks[task_id]['error'] = str(e)
+        tasks[task_id]['error'] = error_msg
 
 
 @scrape_bp.route('/start', methods=['POST'])
@@ -133,14 +153,19 @@ def get_status(task_id):
         }), 404
     
     task = tasks[task_id]
+    
+    # 返回统一格式：status='success'表示API调用成功，data中包含任务状态
     response = {
-        'status': task['status'],
-        'progress': task.get('progress', {}),
-        'results': task.get('results', {})
+        'status': 'success',
+        'data': {
+            'status': task['status'],  # 任务状态：pending, running, completed, error, stopped
+            'progress': task.get('progress', {}),
+            'results': task.get('results', {})
+        }
     }
     
     if 'error' in task:
-        response['error'] = task['error']
+        response['data']['error'] = task['error']
     
     return jsonify(response)
 

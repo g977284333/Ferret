@@ -243,8 +243,9 @@ function startScrape() {
     .done(function(response) {
         if (response.status === 'success') {
             showMessage('采集任务已启动', 'success');
-            // 跳转到采集页面
-            window.location.href = `/scrape?task_id=${response.task_id}`;
+            // 跳转到采集页面，传递关键词
+            const keywordsParam = keywords.map(k => encodeURIComponent(k)).join(',');
+            window.location.href = `/scrape?task_id=${response.task_id}&keywords=${keywordsParam}`;
         }
     })
     .fail(function() {

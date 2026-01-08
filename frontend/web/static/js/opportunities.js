@@ -16,8 +16,19 @@ let filters = {
 
 // 等待jQuery加载
 function initOpportunitiesPage() {
+    // 检查URL参数，看是否从采集页面跳转过来
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromScrape = urlParams.get('from_scrape');
+    
     // 加载数据
     loadOpportunities();
+    
+    // 如果从采集页面跳转过来，显示提示
+    if (fromScrape === 'true') {
+        showMessage('采集完成！以下是新发现的机会', 'success');
+        // 清除URL参数
+        window.history.replaceState({}, '', '/opportunities');
+    }
     
     // 搜索
     $('#searchInput').on('keypress', function(e) {
