@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# 数据文件
+data/raw/
+data/*.db
+data/*.sqlite
+data/processed/*.csv
+*.json
+!backend/config/*.json
+!docs/**/*.json
+
+# 保留测试结果（可选）
+# tests/test_results/
+
+# 环境变量
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 日志
+*.log
+
+# 临时文件
+*.tmp
+*.bak

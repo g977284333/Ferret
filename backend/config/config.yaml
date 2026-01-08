@@ -1,0 +1,37 @@
+# 数据源配置
+data_sources:
+  app_store:
+    enabled: true
+    categories: ["工具", "效率", "商务", "生产力"]  # 关注的分类
+    countries: ["us", "cn"]  # 关注的国家
+    min_rating: 4.0  # 最低评分
+    max_rating: 4.8  # 最高评分（有改进空间）
+    
+  product_hunt:
+    enabled: true
+    daily_limit: 50  # 每日采集数量
+    
+  google_play:
+    enabled: false  # 暂时不启用
+
+# 机会评分标准（会持续优化）
+scoring:
+  # 评分权重（总和应为1.0）
+  weights:
+    market_size: 0.3      # 市场规模
+    competition: 0.25     # 竞争程度（越低越好）
+    user_satisfaction: 0.2  # 用户满意度（有改进空间）
+    growth_trend: 0.15    # 增长趋势
+    monetization: 0.1     # 变现潜力
+    
+  # 阈值
+  thresholds:
+    min_score: 0.6        # 最低机会分数
+    min_reviews: 10       # 最少评论数
+    max_competitors: 20   # 最多竞品数
+
+# 数据存储
+storage:
+  database: "data/opportunities.db"  # SQLite数据库
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
