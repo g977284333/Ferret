@@ -1,0 +1,7 @@
+# Flask Web应用依赖
+Flask>=3.0.0
+Flask-CORS>=4.0.0
+deep-translator>=1.11.4
+
+# 复用后端代码（通过sys.path）
+# 不需要单独安装，使用项目根目录的requirements.txt

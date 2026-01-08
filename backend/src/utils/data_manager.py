@@ -101,6 +101,32 @@ class DataManager:
         conn.close()
         return df
     
+    def get_opportunities(self) -> List[Dict]:
+        """获取所有机会"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM opportunities ORDER BY opportunity_score DESC')
+        
+        columns = [description[0] for description in cursor.description]
+        opportunities = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        
+        conn.close()
+        return opportunities
+    
+    def get_opportunity_by_id(self, app_id: str) -> Optional[Dict]:
+        """根据app_id获取机会"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM opportunities WHERE app_id = ?', (str(app_id),))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            columns = [description[0] for description in cursor.description]
+            return dict(zip(columns, row))
+        return None
+    
     def save_raw_data(self, data: List[Dict], source: str):
         """保存原始数据"""
         conn = sqlite3.connect(self.db_path)

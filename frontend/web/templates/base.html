@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ferret - 机会发现工具{% endblock %}</title>
+    
+    <!-- 预连接CDN，加速资源加载 -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://fastly.jsdelivr.net">
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link rel="dns-prefetch" href="https://fastly.jsdelivr.net">
+    
+    <!-- Tailwind CSS - 延迟加载，不阻塞页面渲染 -->
+    <script>
+        // Tailwind CSS延迟加载
+        (function() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.tailwindcss.com?plugins=forms,typography';
+            script.async = true;
+            document.head.appendChild(script);
+        })();
+    </script>
+    
+    <!-- Flowbite CSS - 使用本地资源，避免CDN延迟 -->
+    <link href="{{ url_for('static', filename='vendor/flowbite.min.css') }}" rel="stylesheet" />
+    
+    <!-- 自定义样式 - 提前加载 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- 内联关键JavaScript，避免阻塞渲染 -->
+    <script>
+        // 设置全局变量，避免等待jQuery
+        window.API_BASE = '/api/v1';
+        window.FerretConfig = {
+            baseUrl: '{{ request.url_root }}',
+            apiBase: '/api/v1'
+        };
+        
+        // 页面切换优化：预加载下一个可能访问的页面
+        const links = document.querySelectorAll('a[href^="/"]');
+        links.forEach(link => {
+            link.addEventListener('mouseenter', function() {
+                // 鼠标悬停时预加载页面
+                const prefetchLink = document.createElement('link');
+                prefetchLink.rel = 'prefetch';
+                prefetchLink.href = this.href;
+                document.head.appendChild(prefetchLink);
+            }, { once: true });
+        });
+    </script>
+    
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <!-- 导航栏 -->
+    <nav class="bg-white border-b border-gray-200 px-4 py-3">
+        <div class="container mx-auto flex items-center justify-between">
+            <a href="/" class="flex items-center space-x-2">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <span class="text-xl font-bold text-gray-900">Ferret</span>
+            </a>
+            
+            <div class="flex items-center space-x-4">
+                <a href="/" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'index' %}bg-blue-50 text-blue-600{% endif %}">
+                    首页
+                </a>
+                <a href="/scrape" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'scrape_page' %}bg-blue-50 text-blue-600{% endif %}">
+                    数据采集
+                </a>
+                <a href="/opportunities" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'opportunities_page' %}bg-blue-50 text-blue-600{% endif %}">
+                    机会列表
+                </a>
+                <a href="/config" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'config_page' %}bg-blue-50 text-blue-600{% endif %}">
+                    配置
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 mt-12 py-6">
+        <div class="container mx-auto px-4 text-center text-gray-600 text-sm">
+            <p>Ferret - 数据驱动的机会发现工具</p>
+        </div>
+    </footer>
+    
+    <!-- JavaScript - 延迟加载，不阻塞页面渲染 -->
+    <script>
+        // 延迟加载非关键JavaScript
+        (function() {
+            function loadScript(src, callback) {
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = true;
+                if (callback) script.onload = callback;
+                document.head.appendChild(script);
+            }
+            
+            // 页面加载完成后加载jQuery
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initScripts);
+            } else {
+                initScripts();
+            }
+            
+            function initScripts() {
+                // 加载jQuery - 使用本地资源，避免CDN延迟
+                loadScript("{{ url_for('static', filename='vendor/jquery.min.js') }}", function() {
+                    // 确保jQuery已加载
+                    if (typeof $ === 'undefined') {
+                        console.error('jQuery加载失败');
+                        return;
+                    }
+                    
+                    // jQuery加载后加载其他依赖
+                    loadScript("{{ url_for('static', filename='vendor/flowbite.min.js') }}");
+                    loadScript("{{ url_for('static', filename='js/main.js') }}", function() {
+                        // main.js加载后，触发页面脚本加载
+                        triggerPageScripts();
+                    });
+                });
+            }
+            
+            function triggerPageScripts() {
+                // 触发所有等待jQuery的脚本
+                if (window.jQueryReadyCallbacks) {
+                    window.jQueryReadyCallbacks.forEach(function(callback) {
+                        callback();
+                    });
+                    window.jQueryReadyCallbacks = [];
+                }
+                
+                // 触发jQuery ready事件（如果DOM已准备好）
+                if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                    $(document).ready();
+                }
+            }
+            
+            // 存储等待jQuery的回调
+            window.jQueryReadyCallbacks = [];
+        })();
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

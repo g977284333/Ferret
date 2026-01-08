@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}机会详情 - Ferret{% endblock %}
+
+{% block content %}
+<div id="loadingIndicator" class="text-center py-12" data-app-id="{{ app_id }}">
+    <div class="loading-spinner mx-auto mb-4"></div>
+    <p class="text-gray-600">加载中...</p>
+</div>
+
+<div id="contentContainer" style="display: none;">
+    <!-- 基本信息卡片 -->
+    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-3xl font-bold text-gray-900" id="appName">-</h1>
+            <a id="appStoreLink" href="#" target="_blank" 
+               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                🔗 打开App Store
+            </a>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">分类</p>
+                <p class="text-lg font-semibold text-gray-900" id="category">-</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 mb-1">评分</p>
+                <div class="flex items-center">
+                    <p class="text-lg font-semibold text-gray-900" id="rating">-</p>
+                    <span class="ml-1 text-yellow-500">⭐</span>
+                    <span class="ml-2 text-sm text-gray-600" id="reviewCount">-</span>
+                </div>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 mb-1">价格</p>
+                <p class="text-lg font-semibold text-gray-900" id="price">-</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 mb-1">机会分数</p>
+                <p class="text-2xl font-bold text-blue-600" id="opportunityScore">-</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- App信息卡片 -->
+    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📱 App详细信息</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 左侧：基本信息 -->
+            <div class="space-y-4">
+                <div id="appIconContainer" class="mb-4">
+                    <img id="appIcon" src="" alt="App Icon" class="w-32 h-32 rounded-xl shadow-md" style="display: none;">
+                </div>
+                
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">开发者</p>
+                    <p class="text-lg font-semibold text-gray-900" id="sellerName">-</p>
+                </div>
+                
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">发布日期</p>
+                    <p class="text-lg font-semibold text-gray-900" id="releaseDate">-</p>
+                </div>
+                
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">当前版本</p>
+                    <p class="text-lg font-semibold text-gray-900" id="currentVersion">-</p>
+                    <p class="text-xs text-gray-500" id="versionDate">-</p>
+                </div>
+                
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">版本评分</p>
+                    <div class="flex items-center">
+                        <p class="text-lg font-semibold text-gray-900" id="currentVersionRating">-</p>
+                        <span class="ml-1 text-yellow-500">⭐</span>
+                        <span class="ml-2 text-sm text-gray-600" id="currentVersionReviews">-</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">文件大小</p>
+                    <p class="text-lg font-semibold text-gray-900" id="fileSize">-</p>
+                </div>
+                
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">最低系统版本</p>
+                    <p class="text-lg font-semibold text-gray-900" id="minimumOS">-</p>
+                </div>
+                
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">内容评级</p>
+                    <p class="text-lg font-semibold text-gray-900" id="contentRating">-</p>
+                </div>
+            </div>
+            
+            <!-- 右侧：描述和截图 -->
+            <div class="space-y-4">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm text-gray-600">应用描述</p>
+                        <button id="translateBtn" class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium">
+                            🌐 翻译成中文
+                        </button>
+                    </div>
+                    <div id="description" class="text-gray-700 max-h-64 overflow-y-auto p-4 bg-gray-50 rounded-lg">
+                        -
+                    </div>
+                    <div id="translatedDescription" class="text-gray-700 max-h-64 overflow-y-auto p-4 bg-blue-50 rounded-lg border border-blue-200" style="display: none;">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-medium text-blue-700">中文翻译</span>
+                            <button id="showOriginalBtn" class="text-xs text-blue-600 hover:text-blue-800">显示原文</button>
+                        </div>
+                        <div id="translatedText">-</div>
+                    </div>
+                </div>
+                
+                <div id="screenshotsContainer" style="display: none;">
+                    <p class="text-sm text-gray-600 mb-3 font-medium">📸 应用截图</p>
+                    <div id="screenshots" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <!-- 截图将动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 评分详情卡片 -->
+    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📊 机会评分详情</h2>
+        
+        <div class="space-y-4">
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-gray-700">总分</span>
+                    <span class="text-lg font-bold text-blue-600" id="totalScore">-</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div id="totalScoreBar" class="bg-blue-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="space-y-3" id="scoringDetails">
+                <!-- 各维度评分将动态生成 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 数据来源说明 -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+                <p class="text-sm font-medium text-blue-900">数据来源说明</p>
+                <p class="text-xs text-blue-700 mt-1">
+                    所有数据均来自App Store官方API，数据真实可靠。数据采集时间：<span id="dataSourceTime">-</span>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 操作按钮 -->
+    <div class="flex gap-3 mb-6">
+        <a href="/opportunities" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium">
+            ← 返回列表
+        </a>
+        <button id="exportBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
+            📥 导出数据
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/detail.js') }}"></script>
+{% endblock %}
