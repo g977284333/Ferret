@@ -29,12 +29,14 @@ from api.opportunities import opportunities_bp
 from api.config import config_bp
 from api.stats import stats_bp
 from api.translate import translate_bp
+from api.trends import trends_bp
 
 app.register_blueprint(scrape_bp, url_prefix='/api/v1/scrape')
 app.register_blueprint(opportunities_bp, url_prefix='/api/v1/opportunities')
 app.register_blueprint(config_bp, url_prefix='/api/v1/config')
 app.register_blueprint(stats_bp, url_prefix='/api/v1/stats')
 app.register_blueprint(translate_bp, url_prefix='/api/v1/translate')
+app.register_blueprint(trends_bp, url_prefix='/api/v1/trends')
 
 
 @app.route('/')
@@ -65,6 +67,12 @@ def opportunity_detail(app_id):
 def config_page():
     """配置页面"""
     return render_template('config.html')
+
+
+@app.route('/trends')
+def trends_page():
+    """搜索趋势页面"""
+    return render_template('trends.html')
 
 
 if __name__ == '__main__':
