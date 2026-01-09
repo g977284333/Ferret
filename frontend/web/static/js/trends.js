@@ -257,6 +257,17 @@ function startMonitoring(taskId) {
     $('#trendForm').hide();
     updateStatusDisplay('running', '正在采集趋势数据...');
     
+    // 启用停止按钮（进度卡片中的）
+    $('#stopBtnInProgress').prop('disabled', false).show();
+    
+    // 隐藏表单中的停止按钮（因为进度卡片中已经有了）
+    $('#stopBtn').hide();
+    
+    // 初始化任务状态存储
+    if (!window.trendTasks) {
+        window.trendTasks = {};
+    }
+    
     statusInterval = setInterval(function() {
         checkStatus(taskId);
     }, 2000);
