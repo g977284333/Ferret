@@ -884,6 +884,36 @@ function renderChartWithChartJS(trends, keyword, platform) {
     `);
 }
 
+// 导出趋势数据
+function exportTrendsData() {
+    // 获取当前选中的关键词，如果没有则导出所有
+    const selectedKeyword = $('#chartKeyword').val();
+    const platform = $('#chartPlatform').val() || 'google_trends';
+    
+    if (!selectedKeyword) {
+        // 如果没有选中关键词，导出所有数据
+        if (!confirm('未选择关键词，将导出所有趋势数据。是否继续？')) {
+            return;
+        }
+    }
+    
+    // 构建导出URL
+    const params = new URLSearchParams({
+        format: 'csv',
+        platform: platform
+    });
+    
+    if (selectedKeyword) {
+        params.append('keyword', selectedKeyword);
+    }
+    
+    const url = `/api/v1/trends/export?${params.toString()}`;
+    
+    // 打开下载链接
+    window.open(url, '_blank');
+    showMessage('正在导出趋势数据...', 'info');
+}
+
 function compareKeywords() {
     // 从已采集关键词列表获取关键词，或者使用当前关键词列表
     const selectedKeywords = [];
