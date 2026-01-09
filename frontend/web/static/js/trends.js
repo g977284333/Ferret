@@ -281,9 +281,6 @@ function startMonitoring(taskId) {
     // 启用停止按钮（进度卡片中的）
     $('#stopBtnInProgress').prop('disabled', false).show();
     
-    // 隐藏表单中的停止按钮（因为进度卡片中已经有了）
-    $('#stopBtn').hide();
-    
     // 初始化任务状态存储
     if (!window.trendTasks) {
         window.trendTasks = {};
@@ -313,7 +310,7 @@ function checkStatus(taskId) {
                     updateProgress(data);
                     
                     // 禁用停止按钮
-                    $('#stopBtn').prop('disabled', true);
+                    $('#stopBtnInProgress').prop('disabled', true);
                     
                     showMessage('趋势采集完成！', 'success');
                     
@@ -345,7 +342,6 @@ function checkStatus(taskId) {
                     updateStatusDisplay('error', '采集失败');
                     
                     // 禁用停止按钮
-                    $('#stopBtn').prop('disabled', true);
                     $('#stopBtnInProgress').prop('disabled', true);
                     
                     showMessage('采集任务出错: ' + (data.error || '未知错误'), 'error');
@@ -497,7 +493,6 @@ function stopTrendCollection() {
             updateStatusDisplay('stopped', '已停止');
             
             // 禁用停止按钮
-            $('#stopBtn').prop('disabled', true);
             $('#stopBtnInProgress').prop('disabled', true);
             
             // 隐藏进度卡片，显示结果卡片
