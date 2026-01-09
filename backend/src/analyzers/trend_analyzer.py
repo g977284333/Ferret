@@ -50,6 +50,25 @@ class TrendAnalyzer:
             df['date'] = pd.to_datetime(df['date'])
             df = df.sort_values('date')
         
+        # 确保value列存在
+        if 'value' not in df.columns:
+            # 如果没有value列，尝试使用关键词作为列名
+            if keyword in df.columns:
+                df['value'] = df[keyword]
+            else:
+                # 如果都没有，返回空结果
+                return {
+                    'keyword': keyword,
+                    'platform': platform,
+                    'growth_rate': 0,
+                    'trend': 'stable',
+                    'avg_value': 0,
+                    'max_value': 0,
+                    'min_value': 0,
+                    'volatility': 0,
+                    'data_points': 0
+                }
+        
         values = df['value'].values
         
         # 计算增长率（最近30天 vs 前30天）
@@ -79,20 +98,20 @@ class TrendAnalyzer:
             trend = 'stable'
         
         # 计算统计指标
-        avg_value = values.mean()
-        max_value = values.max()
-        min_value = values.min()
-        volatility = values.std() / avg_value * 100 if avg_value > 0 else 0
+        avg_value = float(values.mean()) if len(values) > 0 else 0.0
+        max_value = float(values.max()) if len(values) > 0 else 0.0
+        min_value = float(values.min()) if len(values) > 0 else 0.0
+        volatility = float(values.std() / avg_value * 100) if avg_value > 0 and len(values) > 0 else 0.0
         
         return {
             'keyword': keyword,
             'platform': platform,
-            'growth_rate': round(growth_rate, 2),
+            'growth_rate': float(growth_rate),
             'trend': trend,
-            'avg_value': round(avg_value, 2),
-            'max_value': round(max_value, 2),
-            'min_value': round(min_value, 2),
-            'volatility': round(volatility, 2),
+            'avg_value': float(avg_value),
+            'max_value': float(max_value),
+            'min_value': float(min_value),
+            'volatility': float(volatility),
             'data_points': len(values)
         }
     
@@ -203,17 +222,29 @@ class TrendAnalyzer:
         analysis = self.analyze_trend_growth(df, keyword, platform)
         trend_score = self.calculate_trend_score(analysis)
         
+        # 获取日期范围
+        start_date = None
+        end_date = None
+        if 'date' in df.columns and not df.empty:
+            try:
+                date_min = df['date'].min()
+                date_max = df['date'].max()
+                start_date = date_min.isoformat() if hasattr(date_min, 'isoformat') else str(date_min)
+                end_date = date_max.isoformat() if hasattr(date_max, 'isoformat') else str(date_max)
+            except Exception as e:
+                print(f"Error getting date range: {e}")
+        
         summary = {
             'keyword': keyword,
             'platform': platform,
-            'trend': analysis['trend'],
-            'growth_rate': analysis['growth_rate'],
+            'trend': analysis.get('trend', 'stable'),
+            'growth_rate': analysis.get('growth_rate', 0),
             'trend_score': round(trend_score, 3),
-            'avg_value': analysis['avg_value'],
-            'data_points': analysis['data_points'],
+            'avg_value': analysis.get('avg_value', 0),
+            'data_points': analysis.get('data_points', len(df)),
             'period': {
-                'start': df['date'].min().isoformat() if 'date' in df.columns and not df.empty else None,
-                'end': df['date'].max().isoformat() if 'date' in df.columns and not df.empty else None
+                'start': start_date,
+                'end': end_date
             }
         }
         

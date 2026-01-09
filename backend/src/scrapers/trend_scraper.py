@@ -15,10 +15,16 @@ from pathlib import Path
 from typing import List, Dict, Optional
 import pandas as pd
 
-# 修复Windows控制台编码问题
+# 修复Windows控制台编码问题（仅在需要时修改，避免在Flask中出错）
+import io
 if sys.platform == 'win32':
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    try:
+        # 检查stdout是否可用且未被包装
+        if hasattr(sys.stdout, 'buffer') and not isinstance(sys.stdout, io.TextIOWrapper):
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError, OSError):
+        # 如果stdout已经被关闭或无法修改，跳过
+        pass
 
 # Google Trends
 try:
@@ -102,11 +108,19 @@ class TrendScraper:
             # 获取时间序列数据
             interest_over_time = self.pytrends.interest_over_time()
             
-            # 获取相关查询
-            related_queries = self.pytrends.related_queries()
+            # 获取相关查询（可能失败，需要错误处理）
+            related_queries = {}
+            try:
+                related_queries = self.pytrends.related_queries()
+            except Exception as e:
+                print(f"获取相关查询失败: {e}")
             
-            # 获取相关主题
-            related_topics = self.pytrends.related_topics()
+            # 获取相关主题（可能失败，需要错误处理）
+            related_topics = {}
+            try:
+                related_topics = self.pytrends.related_topics()
+            except Exception as e:
+                print(f"获取相关主题失败: {e}")
             
             # 处理时间序列数据，转换为易处理的格式
             interest_data = []
@@ -120,7 +134,11 @@ class TrendScraper:
                     if 'date' in df.columns:
                         record['date'] = str(row['date'])
                     elif df.index.name == 'date':
-                        record['date'] = str(df.index[_])
+                        # 使用iloc而不是索引访问
+                        try:
+                            record['date'] = str(df.index.iloc[_])
+                        except (IndexError, AttributeError):
+                            record['date'] = str(row.name) if hasattr(row, 'name') else str(_)
                     else:
                         # 尝试从索引获取
                         record['date'] = str(row.name) if hasattr(row, 'name') else str(_)
@@ -132,6 +150,38 @@ class TrendScraper:
                     
                     interest_data.append(record)
             
+            # 处理相关查询
+            related_queries_dict = {}
+            if related_queries:
+                for kw in keywords:
+                    if kw in related_queries and related_queries[kw] is not None:
+                        try:
+                            related_queries_dict[kw] = {
+                                'top': related_queries[kw]['top'].to_dict('records') if related_queries[kw].get('top') is not None and not related_queries[kw]['top'].empty else [],
+                                'rising': related_queries[kw]['rising'].to_dict('records') if related_queries[kw].get('rising') is not None and not related_queries[kw]['rising'].empty else []
+                            }
+                        except Exception as e:
+                            print(f"处理关键词 {kw} 的相关查询失败: {e}")
+                            related_queries_dict[kw] = {'top': [], 'rising': []}
+                    else:
+                        related_queries_dict[kw] = {'top': [], 'rising': []}
+            
+            # 处理相关主题
+            related_topics_dict = {}
+            if related_topics:
+                for kw in keywords:
+                    if kw in related_topics and related_topics[kw] is not None:
+                        try:
+                            related_topics_dict[kw] = {
+                                'top': related_topics[kw]['top'].to_dict('records') if related_topics[kw].get('top') is not None and not related_topics[kw]['top'].empty else [],
+                                'rising': related_topics[kw]['rising'].to_dict('records') if related_topics[kw].get('rising') is not None and not related_topics[kw]['rising'].empty else []
+                            }
+                        except Exception as e:
+                            print(f"处理关键词 {kw} 的相关主题失败: {e}")
+                            related_topics_dict[kw] = {'top': [], 'rising': []}
+                    else:
+                        related_topics_dict[kw] = {'top': [], 'rising': []}
+            
             # 转换为字典格式
             result = {
                 'success': True,
@@ -141,18 +191,8 @@ class TrendScraper:
                 'geo': geo,
                 'data': {
                     'interest_over_time': interest_data,  # 返回记录列表，更易处理
-                    'related_queries': {
-                        kw: {
-                            'top': related_queries[kw]['top'].to_dict('records') if related_queries[kw]['top'] is not None else [],
-                            'rising': related_queries[kw]['rising'].to_dict('records') if related_queries[kw]['rising'] is not None else []
-                        } for kw in keywords if kw in related_queries
-                    },
-                    'related_topics': {
-                        kw: {
-                            'top': related_topics[kw]['top'].to_dict('records') if related_topics[kw]['top'] is not None else [],
-                            'rising': related_topics[kw]['rising'].to_dict('records') if related_topics[kw]['rising'] is not None else []
-                        } for kw in keywords if kw in related_topics
-                    }
+                    'related_queries': related_queries_dict,
+                    'related_topics': related_topics_dict
                 }
             }
             

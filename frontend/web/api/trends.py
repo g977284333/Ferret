@@ -41,6 +41,8 @@ def run_trend_task(task_id, keywords, platforms, timeframe):
         all_trends = []
         completed = 0
         
+        print(f"[Trend Task {task_id}] 开始采集任务，关键词: {keywords}, 平台: {platforms}, 时间范围: {timeframe}")
+        
         for keyword in keywords:
             trend_tasks[task_id]['progress']['current_keyword'] = keyword
             
@@ -50,9 +52,13 @@ def run_trend_task(task_id, keywords, platforms, timeframe):
                 if platform == 'google_trends':
                     result = scraper.get_google_trends([keyword], timeframe=timeframe)
                     
+                    print(f"[Trend Task {task_id}] 采集关键词 '{keyword}' 结果: success={result.get('success')}, error={result.get('error', 'None')}")
+                    
                     if result['success'] and 'data' in result:
                         data = result['data']
                         interest_data = data.get('interest_over_time', [])
+                        
+                        print(f"[Trend Task {task_id}] interest_over_time 数据量: {len(interest_data) if isinstance(interest_data, list) else 0}")
                         
                         # 保存趋势数据
                         trends_to_save = []
@@ -72,9 +78,21 @@ def run_trend_task(task_id, keywords, platforms, timeframe):
                                             'metadata': {}
                                         })
                         
+                        print(f"[Trend Task {task_id}] 准备保存 {len(trends_to_save)} 条趋势数据")
+                        
                         if trends_to_save:
-                            data_manager.save_trend_batch(trends_to_save)
-                            all_trends.extend(trends_to_save)
+                            try:
+                                data_manager.save_trend_batch(trends_to_save)
+                                all_trends.extend(trends_to_save)
+                                print(f"[Trend Task {task_id}] 成功保存 {len(trends_to_save)} 条趋势数据到数据库")
+                            except Exception as e:
+                                print(f"[Trend Task {task_id}] 保存趋势数据失败: {e}")
+                                import traceback
+                                traceback.print_exc()
+                        else:
+                            print(f"[Trend Task {task_id}] 警告: 没有可保存的趋势数据")
+                    else:
+                        print(f"[Trend Task {task_id}] 采集失败: {result.get('error', '未知错误')}")
                 
                 completed += 1
                 trend_tasks[task_id]['progress']['completed'] = completed
@@ -342,7 +360,7 @@ def compare_keywords():
 def get_hot_keywords():
     """获取热门关键词（增长趋势明显的）"""
     platform = request.args.get('platform', 'google_trends')
-    min_growth_rate = float(request.args.get('min_growth_rate', 20.0))
+    min_growth_rate = float(request.args.get('min_growth_rate', 10.0))  # 降低阈值，默认10%
     
     data_manager = DataManager()
     analyzer = TrendAnalyzer()
@@ -350,16 +368,35 @@ def get_hot_keywords():
     # 获取所有关键词
     keywords = data_manager.get_trend_keywords()
     
+    if not keywords:
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'hot_keywords': [],
+                'total': 0
+            }
+        })
+    
     # 分析每个关键词
     trends_data = []
     for keyword in keywords:
         df = data_manager.get_trend_data(keyword=keyword, platform=platform)
-        if not df.empty:
-            analysis = analyzer.analyze_trend_growth(df, keyword, platform)
-            trends_data.append(analysis)
+        if not df.empty and len(df) >= 2:  # 至少需要2个数据点才能分析
+            try:
+                analysis = analyzer.analyze_trend_growth(df, keyword, platform)
+                trends_data.append(analysis)
+            except Exception as e:
+                print(f"分析关键词 {keyword} 失败: {e}")
+                continue
     
     # 识别热门关键词
     hot_keywords = analyzer.identify_hot_keywords(trends_data, min_growth_rate=min_growth_rate)
+    
+    # 如果热门关键词为空，返回所有关键词（按增长率排序）
+    if not hot_keywords and trends_data:
+        # 按增长率排序，返回前10个
+        trends_data.sort(key=lambda x: x.get('growth_rate', 0), reverse=True)
+        hot_keywords = trends_data[:10]
     
     return jsonify({
         'status': 'success',

@@ -20,11 +20,17 @@ except ImportError:
 
 import requests
 from tqdm import tqdm
+import io
 
-# 修复Windows控制台编码问题
+# 修复Windows控制台编码问题（仅在需要时修改，避免在Flask中出错）
 if sys.platform == 'win32':
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    try:
+        # 检查stdout是否可用且未被包装
+        if hasattr(sys.stdout, 'buffer') and not isinstance(sys.stdout, io.TextIOWrapper):
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError, OSError):
+        # 如果stdout已经被关闭或无法修改，跳过
+        pass
 
 
 class AppStoreScraperWrapper:

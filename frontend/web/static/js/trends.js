@@ -303,38 +303,46 @@ function stopTrendCollection() {
 }
 
 function loadHotKeywords() {
-    $.get('/api/v1/trends/hot?min_growth_rate=20')
+    // 降低阈值，显示更多关键词（从20%降到5%）
+    $.get('/api/v1/trends/hot?min_growth_rate=5')
         .done(function(response) {
-            if (response.status === 'success' && response.data.hot_keywords) {
-                const hotKeywords = response.data.hot_keywords;
-                const container = $('#hotKeywordsList');
-                container.empty();
+            console.log('Hot keywords response:', response);
+            const container = $('#hotKeywordsList');
+            container.empty();
+            
+            if (response.status === 'success' && response.data) {
+                const hotKeywords = response.data.hot_keywords || [];
                 
                 if (hotKeywords.length === 0) {
-                    container.html('<p class="text-gray-400 text-sm">暂无热门关键词</p>');
+                    container.html('<p class="text-gray-400 text-sm">暂无热门关键词<br><span class="text-xs">（需要更多数据或降低增长率阈值）</span></p>');
                     return;
                 }
                 
                 hotKeywords.slice(0, 10).forEach(item => {
-                    const trendIcon = item.trend === 'rising' ? '📈' : item.trend === 'declining' ? '📉' : '➡️';
+                    const trend = item.trend || 'stable';
+                    const growthRate = item.growth_rate || 0;
+                    const trendIcon = trend === 'rising' ? '📈' : trend === 'declining' ? '📉' : '➡️';
                     const html = $(`
-                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded mb-2">
                             <div>
-                                <span class="font-medium">${item.keyword}</span>
-                                <span class="text-xs text-gray-500 ml-2">${item.platform}</span>
+                                <span class="font-medium">${item.keyword || '未知'}</span>
+                                <span class="text-xs text-gray-500 ml-2">${item.platform || 'google_trends'}</span>
                             </div>
                             <div class="text-right">
-                                <div class="text-sm font-semibold ${item.growth_rate > 0 ? 'text-green-600' : 'text-red-600'}">
-                                    ${trendIcon} ${item.growth_rate > 0 ? '+' : ''}${item.growth_rate.toFixed(1)}%
+                                <div class="text-sm font-semibold ${growthRate > 0 ? 'text-green-600' : growthRate < 0 ? 'text-red-600' : 'text-gray-600'}">
+                                    ${trendIcon} ${growthRate > 0 ? '+' : ''}${growthRate.toFixed(1)}%
                                 </div>
                             </div>
                         </div>
                     `);
                     container.append(html);
                 });
+            } else {
+                container.html('<p class="text-gray-400 text-sm">暂无热门关键词</p>');
             }
         })
-        .fail(function() {
+        .fail(function(xhr) {
+            console.error('Load hot keywords failed:', xhr);
             $('#hotKeywordsList').html('<p class="text-red-400 text-sm">加载失败</p>');
         });
 }
@@ -360,10 +368,13 @@ function loadCollectedKeywords() {
                 });
                 
                 keywords.slice(0, 20).forEach(keyword => {
+                    // 转义单引号，避免onclick中的JavaScript错误
+                    const safeKeyword = keyword.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                     const html = $(`
-                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded mb-2">
                             <span class="font-medium">${keyword}</span>
-                            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="analyzeKeyword('${keyword}')">
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium px-2 py-1 rounded hover:bg-blue-50" 
+                                    onclick="window.analyzeKeyword('${safeKeyword}')">
                                 分析
                             </button>
                         </div>
@@ -377,15 +388,26 @@ function loadCollectedKeywords() {
         });
 }
 
-function analyzeKeyword(keyword) {
+// 将analyzeKeyword暴露为全局函数，以便onclick可以调用
+window.analyzeKeyword = function(keyword) {
+    console.log('Analyzing keyword:', keyword);
+    
+    // 显示加载状态
+    $('#analysisCard').show();
+    $('#analysisContent').html('<div class="text-center py-8"><div class="loading-spinner mx-auto mb-4"></div><p class="text-gray-600">分析中...</p></div>');
+    
     $.get(`/api/v1/trends/analyze/${encodeURIComponent(keyword)}?platform=google_trends`)
         .done(function(response) {
+            console.log('Analysis response:', response);
             if (response.status === 'success' && response.data) {
                 const analysis = response.data.analysis;
                 const summary = response.data.summary;
                 
                 let html = `
                     <div class="space-y-4">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-bold text-gray-900">关键词：${keyword}</h3>
+                        </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="p-4 bg-blue-50 rounded-lg">
                                 <p class="text-sm text-gray-600">增长率</p>
@@ -395,25 +417,42 @@ function analyzeKeyword(keyword) {
                             </div>
                             <div class="p-4 bg-green-50 rounded-lg">
                                 <p class="text-sm text-gray-600">趋势分数</p>
-                                <p class="text-2xl font-bold text-green-600">${summary.trend_score.toFixed(3)}</p>
+                                <p class="text-2xl font-bold text-green-600">${(summary.trend_score || 0).toFixed(3)}</p>
                             </div>
                         </div>
                         <div class="p-4 bg-gray-50 rounded-lg">
                             <p class="text-sm font-medium mb-2">趋势分析</p>
-                            <p>趋势：<span class="font-semibold">${getTrendText(analysis.trend)}</span></p>
-                            <p>平均热度：${analysis.avg_value}</p>
-                            <p>数据点数：${analysis.data_points}</p>
+                            <p class="text-sm">趋势：<span class="font-semibold">${getTrendText(analysis.trend || 'stable')}</span></p>
+                            <p class="text-sm">平均热度：${(analysis.avg_value || 0).toFixed(2)}</p>
+                            <p class="text-sm">最高热度：${(analysis.max_value || 0).toFixed(2)}</p>
+                            <p class="text-sm">最低热度：${(analysis.min_value || 0).toFixed(2)}</p>
+                            <p class="text-sm">波动性：${(analysis.volatility || 0).toFixed(2)}</p>
+                            <p class="text-sm">数据点数：${response.data.data_points || 0}</p>
                         </div>
                     </div>
                 `;
                 
                 $('#analysisContent').html(html);
-                $('#analysisCard').show();
+                showMessage('分析完成', 'success');
+            } else {
+                $('#analysisContent').html(`<div class="text-center py-8"><p class="text-red-600">分析失败：${response.message || '未知错误'}</p></div>`);
+                showMessage('分析失败：' + (response.message || '未知错误'), 'error');
             }
         })
-        .fail(function() {
-            showMessage('分析失败', 'error');
+        .fail(function(xhr) {
+            console.error('Analysis failed:', xhr);
+            let errorMsg = '分析失败';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg = xhr.responseJSON.message;
+            }
+            $('#analysisContent').html(`<div class="text-center py-8"><p class="text-red-600">${errorMsg}</p></div>`);
+            showMessage(errorMsg, 'error');
         });
+};
+
+// 也保留原来的函数定义（兼容性）
+function analyzeKeyword(keyword) {
+    window.analyzeKeyword(keyword);
 }
 
 function getTrendText(trend) {
