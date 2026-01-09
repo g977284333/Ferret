@@ -83,6 +83,9 @@ function initTrendsPage() {
     // 刷新已采集关键词
     $('#refreshCollectedBtn').on('click', loadCollectedKeywords);
     
+    // 导出趋势数据
+    $('#exportTrendsBtn').on('click', exportTrendsData);
+    
     // 加载图表
     $('#loadChartBtn').on('click', loadTrendChart);
     

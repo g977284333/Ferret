@@ -213,15 +213,16 @@ def export_opportunities():
         
         opportunities = df.to_dict('records')
     
+    if not opportunities:
+        return jsonify({
+            'status': 'error',
+            'message': '没有数据可导出'
+        }), 400
+    
+    df = pd.DataFrame(opportunities)
+    
     if format_type == 'csv':
         # 导出CSV
-        if not opportunities:
-            return jsonify({
-                'status': 'error',
-                'message': '没有数据可导出'
-            }), 400
-        
-        df = pd.DataFrame(opportunities)
         csv = df.to_csv(index=False, encoding='utf-8-sig')
         
         return Response(
@@ -231,6 +232,32 @@ def export_opportunities():
                 'Content-Disposition': 'attachment; filename=opportunities.csv'
             }
         )
+    elif format_type == 'excel':
+        # 导出Excel（需要openpyxl库）
+        try:
+            from io import BytesIO
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='机会列表')
+            output.seek(0)
+            
+            return Response(
+                output.read(),
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                headers={
+                    'Content-Disposition': 'attachment; filename=opportunities.xlsx'
+                }
+            )
+        except ImportError:
+            # 如果没有openpyxl，返回CSV
+            csv = df.to_csv(index=False, encoding='utf-8-sig')
+            return Response(
+                csv,
+                mimetype='text/csv',
+                headers={
+                    'Content-Disposition': 'attachment; filename=opportunities.csv'
+                }
+            )
     else:
         # 导出JSON
         return jsonify({

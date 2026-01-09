@@ -343,6 +343,86 @@ def get_keywords():
     })
 
 
+@trends_bp.route('/export', methods=['GET'])
+def export_trends():
+    """导出趋势数据"""
+    from flask import Response
+    
+    keyword = request.args.get('keyword')
+    platform = request.args.get('platform', 'google_trends')
+    format_type = request.args.get('format', 'csv')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    data_manager = DataManager()
+    df = data_manager.get_trend_data(
+        keyword=keyword,
+        platform=platform,
+        start_date=start_date,
+        end_date=end_date
+    )
+    
+    if df.empty:
+        return jsonify({
+            'status': 'error',
+            'message': '没有数据可导出'
+        }), 400
+    
+    # 如果指定了关键词，只导出该关键词的数据
+    if keyword:
+        df = df[df['keyword'] == keyword]
+    
+    if format_type == 'csv':
+        # 导出CSV
+        csv = df.to_csv(index=False, encoding='utf-8-sig')
+        
+        filename = f'trends_{keyword or "all"}_{platform}_{datetime.now().strftime("%Y%m%d")}.csv'
+        
+        return Response(
+            csv,
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename={filename}'
+            }
+        )
+    elif format_type == 'excel':
+        # 导出Excel
+        try:
+            from io import BytesIO
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='趋势数据')
+            output.seek(0)
+            
+            filename = f'trends_{keyword or "all"}_{platform}_{datetime.now().strftime("%Y%m%d")}.xlsx'
+            
+            return Response(
+                output.read(),
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                headers={
+                    'Content-Disposition': f'attachment; filename={filename}'
+                }
+            )
+        except ImportError:
+            # 如果没有openpyxl，返回CSV
+            csv = df.to_csv(index=False, encoding='utf-8-sig')
+            filename = f'trends_{keyword or "all"}_{platform}_{datetime.now().strftime("%Y%m%d")}.csv'
+            return Response(
+                csv,
+                mimetype='text/csv',
+                headers={
+                    'Content-Disposition': f'attachment; filename={filename}'
+                }
+            )
+    else:
+        # 导出JSON
+        trends = df.to_dict('records')
+        return jsonify({
+            'status': 'success',
+            'data': trends
+        })
+
+
 @trends_bp.route('/analyze/<keyword>', methods=['GET'])
 def analyze_trend(keyword):
     """分析关键词趋势"""

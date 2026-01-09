@@ -51,7 +51,29 @@ function initOpportunitiesPage() {
     });
     
     // 导出
-    $('#exportBtn').on('click', exportCSV);
+    $('#exportBtn').on('click', function() {
+        exportData('csv'); // 默认导出CSV
+    });
+    
+    // 导出下拉菜单
+    $('#exportDropdownBtn').on('click', function(e) {
+        e.stopPropagation();
+        $('#exportDropdown').toggle();
+    });
+    
+    // 点击外部关闭下拉菜单
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#exportDropdownBtn, #exportDropdown').length) {
+            $('#exportDropdown').hide();
+        }
+    });
+    
+    // 导出格式选择
+    $('.exportFormatBtn').on('click', function() {
+        const format = $(this).data('format');
+        exportData(format);
+        $('#exportDropdown').hide();
+    });
     
     // 全选
     $('#selectAll').on('change', function() {
@@ -370,12 +392,13 @@ function updateCategories(opportunities) {
     }
 }
 
-function exportCSV() {
+function exportData(format) {
     // 构建查询参数（获取所有数据）
     const params = new URLSearchParams({
         per_page: 10000, // 获取所有数据
         sort_by: filters.sort_by,
-        order: filters.order
+        order: filters.order,
+        format: format || 'csv'
     });
     
     if (filters.search) params.append('search', filters.search);
@@ -384,7 +407,9 @@ function exportCSV() {
     if (filters.max_score !== null) params.append('max_score', filters.max_score);
     
     // 创建下载链接
-    const url = `/api/v1/opportunities/export?${params.toString()}&format=csv`;
+    const url = `/api/v1/opportunities/export?${params.toString()}`;
     window.open(url, '_blank');
-    showMessage('正在导出CSV文件...', 'info');
+    
+    const formatName = format === 'excel' ? 'Excel' : 'CSV';
+    showMessage(`正在导出${formatName}文件...`, 'info');
 }

@@ -215,10 +215,11 @@
         </button>
     </div>
     
-    <!-- 已采集关键词 -->
-    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <div class="flex items-center gap-2 mb-4">
-            <h2 class="text-xl font-bold text-gray-900">📋 已采集关键词</h2>
+        <!-- 已采集关键词 -->
+        <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-xl font-bold text-gray-900">📋 已采集关键词</h2>
             <!-- 规则说明按钮 -->
             <button id="collectedKeywordsHelpBtn" 
                     class="w-5 h-5 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-600 hover:text-gray-800 flex items-center justify-center text-xs font-bold cursor-help"
@@ -244,9 +245,14 @@
         <div id="collectedKeywordsList" class="space-y-2">
             <p class="text-gray-400 text-sm">加载中...</p>
         </div>
-        <button id="refreshCollectedBtn" class="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm">
-            🔄 刷新
-        </button>
+        <div class="mt-4 flex gap-2">
+            <button id="refreshCollectedBtn" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm">
+                🔄 刷新
+            </button>
+            <button id="exportTrendsBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm">
+                📥 导出趋势数据
+            </button>
+        </div>
     </div>
 </div>
 
