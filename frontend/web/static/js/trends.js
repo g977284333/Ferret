@@ -50,6 +50,9 @@ function initTrendsPage() {
     // 停止按钮
     $('#stopBtn').on('click', stopTrendCollection);
     
+    // 当任务开始时，启用停止按钮
+    // 当任务结束时，禁用停止按钮
+    
     // 刷新热门关键词
     $('#refreshHotBtn').on('click', loadHotKeywords);
     
@@ -274,6 +277,9 @@ function checkStatus(taskId) {
                     updateStatusDisplay('completed', '采集完成！');
                     updateProgress(data);
                     
+                    // 禁用停止按钮
+                    $('#stopBtn').prop('disabled', true);
+                    
                     showMessage('趋势采集完成！', 'success');
                     
                     // 保存采集的关键词（用于后续自动加载图表）
@@ -302,7 +308,20 @@ function checkStatus(taskId) {
                     clearInterval(statusInterval);
                     statusInterval = null;
                     updateStatusDisplay('error', '采集失败');
+                    
+                    // 禁用停止按钮
+                    $('#stopBtn').prop('disabled', true);
+                    
                     showMessage('采集任务出错: ' + (data.error || '未知错误'), 'error');
+                } else if (taskStatus === 'stopped') {
+                    clearInterval(statusInterval);
+                    statusInterval = null;
+                    updateStatusDisplay('stopped', '已停止');
+                    
+                    // 禁用停止按钮
+                    $('#stopBtn').prop('disabled', true);
+                    
+                    showMessage('采集任务已停止', 'info');
                 }
             }
         })

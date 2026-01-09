@@ -97,13 +97,21 @@ def run_trend_task(task_id, keywords, platforms, timeframe):
                 completed += 1
                 trend_tasks[task_id]['progress']['completed'] = completed
         
-        # 更新任务状态
-        trend_tasks[task_id]['status'] = 'completed'
-        trend_tasks[task_id]['results'] = {
-            'keywords_collected': len(keywords),
-            'trends_saved': len(all_trends),
-            'platforms': platforms
-        }
+        # 更新任务状态（如果未被停止）
+        if task_id in trend_tasks and trend_tasks[task_id].get('status') != 'stopped':
+            trend_tasks[task_id]['status'] = 'completed'
+            trend_tasks[task_id]['results'] = {
+                'keywords_collected': len(keywords),
+                'trends_saved': len(all_trends),
+                'platforms': platforms
+            }
+        else:
+            # 如果被停止，更新结果但不改变状态
+            trend_tasks[task_id]['results'] = {
+                'keywords_collected': len([k for k in keywords if any(t.get('keyword') == k for t in all_trends)]),
+                'trends_saved': len(all_trends),
+                'platforms': platforms
+            }
         
         # 保存任务到数据库
         data_manager.save_trend_task(
