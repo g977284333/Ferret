@@ -345,7 +345,7 @@ def get_keywords():
 
 @trends_bp.route('/export', methods=['GET'])
 def export_trends():
-    """导出趋势数据"""
+    """导出趋势数据（带分析和去重）"""
     from flask import Response
     
     keyword = request.args.get('keyword')
@@ -371,6 +371,84 @@ def export_trends():
     # 如果指定了关键词，只导出该关键词的数据
     if keyword:
         df = df[df['keyword'] == keyword]
+    
+    # 数据清洗和去重
+    # 1. 确保date列是datetime类型
+    if 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date'], errors='coerce', format='mixed')
+        df = df.dropna(subset=['date'])
+    
+    # 2. 去重：按关键词+日期+平台去重，保留最新的（如果有重复）
+    if 'keyword' in df.columns and 'date' in df.columns:
+        # 将日期转换为字符串格式（统一格式）
+        df['date_str'] = df['date'].dt.strftime('%Y-%m-%d')
+        # 按关键词+日期+平台去重，保留最后一个（最新的）
+        df = df.drop_duplicates(subset=['keyword', 'date_str', 'platform'], keep='last')
+        df = df.drop('date_str', axis=1)
+    
+    # 3. 排序：按关键词和日期排序
+    sort_columns = []
+    if 'keyword' in df.columns:
+        sort_columns.append('keyword')
+    if 'date' in df.columns:
+        sort_columns.append('date')
+    if sort_columns:
+        df = df.sort_values(sort_columns)
+    
+    # 4. 添加分析字段（如果数据足够）
+    analyzer = TrendAnalyzer()
+    if len(df) > 0:
+        # 为每个关键词添加分析结果
+        analysis_results = []
+        keywords_in_df = df['keyword'].unique() if 'keyword' in df.columns else []
+        
+        for kw in keywords_in_df:
+            kw_df = df[df['keyword'] == kw].copy()
+            if len(kw_df) >= 2:  # 至少需要2个数据点才能分析
+                try:
+                    analysis = analyzer.analyze_trend_growth(kw_df, kw, platform)
+                    # 将分析结果添加到该关键词的所有行
+                    for idx in kw_df.index:
+                        df.loc[idx, 'growth_rate'] = round(analysis.get('growth_rate', 0), 2)
+                        df.loc[idx, 'trend'] = analysis.get('trend', 'stable')
+                        df.loc[idx, 'avg_value'] = round(analysis.get('avg_value', 0), 2)
+                        df.loc[idx, 'volatility'] = round(analysis.get('volatility', 0), 2)
+                except Exception as e:
+                    print(f"分析关键词 {kw} 失败: {e}")
+                    # 如果分析失败，填充默认值
+                    for idx in kw_df.index:
+                        df.loc[idx, 'growth_rate'] = 0
+                        df.loc[idx, 'trend'] = 'unknown'
+                        df.loc[idx, 'avg_value'] = 0
+                        df.loc[idx, 'volatility'] = 0
+        else:
+            # 如果没有keyword列，尝试分析整个数据集
+            if len(df) >= 2:
+                try:
+                    analysis = analyzer.analyze_trend_growth(df, keyword or 'all', platform)
+                    df['growth_rate'] = round(analysis.get('growth_rate', 0), 2)
+                    df['trend'] = analysis.get('trend', 'stable')
+                    df['avg_value'] = round(analysis.get('avg_value', 0), 2)
+                    df['volatility'] = round(analysis.get('volatility', 0), 2)
+                except Exception as e:
+                    print(f"分析趋势失败: {e}")
+    
+    # 5. 格式化日期列（用于导出）
+    if 'date' in df.columns:
+        df['date'] = df['date'].dt.strftime('%Y-%m-%d')
+    
+    # 6. 重新排列列的顺序，让重要字段在前面
+    column_order = ['keyword', 'platform', 'date', 'value']
+    if 'growth_rate' in df.columns:
+        column_order.extend(['growth_rate', 'trend', 'avg_value', 'volatility'])
+    if 'metadata' in df.columns:
+        column_order.append('metadata')
+    
+    # 只保留存在的列
+    column_order = [col for col in column_order if col in df.columns]
+    # 添加其他列
+    other_columns = [col for col in df.columns if col not in column_order]
+    df = df[column_order + other_columns]
     
     if format_type == 'csv':
         # 导出CSV
