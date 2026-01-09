@@ -1,0 +1,23 @@
+/* Tooltip样式 */
+.tooltip {
+    transition: opacity 0.2s ease-in-out;
+}
+
+.tooltip.visible {
+    visibility: visible;
+    opacity: 1;
+}
+
+.tooltip.invisible {
+    visibility: hidden;
+    opacity: 0;
+}
+
+/* 问号按钮样式 */
+[data-tooltip-target] {
+    transition: all 0.2s ease-in-out;
+}
+
+[data-tooltip-target]:hover {
+    transform: scale(1.1);
+}

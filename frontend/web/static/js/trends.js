@@ -65,6 +65,41 @@ function initTrendsPage() {
     // 初始化加载
     loadCollectedKeywords();
     loadHotKeywords();
+    
+    // 初始化Tooltip（使用Flowbite的tooltip功能）
+    initTooltips();
+}
+
+function initTooltips() {
+    // 使用Flowbite的tooltip功能
+    // 如果Flowbite已加载，初始化tooltip
+    if (typeof Flowbite !== 'undefined' && Flowbite.initTooltips) {
+        Flowbite.initTooltips();
+    } else {
+        // 如果Flowbite未加载，使用简单的点击显示/隐藏
+        $('[data-tooltip-target]').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const targetId = $(this).attr('data-tooltip-target');
+            const tooltip = $('#' + targetId);
+            
+            // 关闭其他tooltip
+            $('.tooltip').removeClass('visible opacity-100').addClass('invisible opacity-0');
+            
+            // 切换当前tooltip
+            if (tooltip.hasClass('invisible')) {
+                tooltip.removeClass('invisible opacity-0').addClass('visible opacity-100');
+                
+                // 点击外部关闭
+                $(document).one('click', function() {
+                    tooltip.removeClass('visible opacity-100').addClass('invisible opacity-0');
+                });
+            } else {
+                tooltip.removeClass('visible opacity-100').addClass('invisible opacity-0');
+            }
+        });
+    }
 }
 
 // 如果jQuery已加载，立即执行；否则等待

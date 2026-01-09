@@ -10,7 +10,31 @@
 
 <!-- 趋势采集配置卡片 -->
 <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-6">
-    <h2 class="text-xl font-bold text-gray-900 mb-4">📊 趋势采集配置</h2>
+    <div class="flex items-center gap-2 mb-4">
+        <h2 class="text-xl font-bold text-gray-900">📊 趋势采集配置</h2>
+        <!-- 规则说明按钮 -->
+        <button id="configHelpBtn" 
+                class="w-5 h-5 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-600 hover:text-gray-800 flex items-center justify-center text-xs font-bold cursor-help"
+                data-tooltip-target="configTooltip"
+                data-tooltip-trigger="click">
+            ?
+        </button>
+        <!-- Tooltip内容 -->
+        <div id="configTooltip" role="tooltip" 
+             class="absolute z-50 invisible inline-block w-64 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip">
+            <div class="text-left space-y-2">
+                <p class="font-bold">采集配置说明：</p>
+                <ul class="list-disc list-inside space-y-1 text-xs">
+                    <li>支持多个关键词，用逗号分隔或逐个添加</li>
+                    <li>时间范围：选择要采集的时间跨度</li>
+                    <li>数据来源：Google Trends官方API</li>
+                    <li>采集完成后数据会自动保存到数据库</li>
+                    <li>可以随时查看历史采集的数据</li>
+                </ul>
+            </div>
+            <div class="tooltip-arrow" data-popper-arrow></div>
+        </div>
+    </div>
     
     <form id="trendForm" class="space-y-4">
         <!-- 关键词列表 -->
@@ -136,7 +160,30 @@
     
     <!-- 已采集关键词 -->
     <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">📋 已采集关键词</h2>
+        <div class="flex items-center gap-2 mb-4">
+            <h2 class="text-xl font-bold text-gray-900">📋 已采集关键词</h2>
+            <!-- 规则说明按钮 -->
+            <button id="collectedKeywordsHelpBtn" 
+                    class="w-5 h-5 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-600 hover:text-gray-800 flex items-center justify-center text-xs font-bold cursor-help"
+                    data-tooltip-target="collectedKeywordsTooltip"
+                    data-tooltip-trigger="click">
+                ?
+            </button>
+            <!-- Tooltip内容 -->
+            <div id="collectedKeywordsTooltip" role="tooltip" 
+                 class="absolute z-50 invisible inline-block w-64 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip">
+                <div class="text-left space-y-2">
+                    <p class="font-bold">已采集关键词说明：</p>
+                    <ul class="list-disc list-inside space-y-1 text-xs">
+                        <li>显示所有已采集并保存到数据库的关键词</li>
+                        <li>点击"分析"按钮可查看该关键词的趋势分析</li>
+                        <li>数据来自Google Trends官方API</li>
+                        <li>数据会持久保存，刷新页面后仍可查看</li>
+                    </ul>
+                </div>
+                <div class="tooltip-arrow" data-popper-arrow></div>
+            </div>
+        </div>
         <div id="collectedKeywordsList" class="space-y-2">
             <p class="text-gray-400 text-sm">加载中...</p>
         </div>
