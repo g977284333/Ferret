@@ -53,6 +53,20 @@ function initTrendsPage() {
     // 停止按钮（进度卡片中的）
     $('#stopBtnInProgress').on('click', stopTrendCollection);
     
+    // 开始新的采集按钮（进度卡片中的）
+    $('#newCollectionBtn').on('click', startNewCollection);
+    
+    // 开始新的采集按钮（结果卡片中的）
+    $('#newCollectionBtnInResults').on('click', startNewCollection);
+    
+    // 查看已采集关键词按钮
+    $('#viewKeywordsBtn').on('click', function() {
+        // 滚动到已采集关键词区域
+        $('html, body').animate({
+            scrollTop: $('#collectedKeywordsList').offset().top - 20
+        }, 300);
+    });
+    
     // 当任务开始时，启用停止按钮
     // 当任务结束时，禁用停止按钮
     
@@ -336,6 +350,14 @@ function checkStatus(taskId) {
                     // 禁用停止按钮
                     $('#stopBtn').prop('disabled', true);
                     $('#stopBtnInProgress').prop('disabled', true);
+                    
+                    // 更新结果卡片数据
+                    if ($('#resultsCard').length) {
+                        const results = data.results || {};
+                        $('#keywordsCollectedResult').text(results.keywords_collected || 0);
+                        $('#trendsSavedResult').text(results.trends_saved || 0);
+                        $('#resultsCard').show();
+                    }
                     
                     showMessage('采集任务已停止', 'info');
                 }
