@@ -53,9 +53,6 @@ function initTrendsPage() {
     // 停止按钮（进度卡片中的）
     $('#stopBtnInProgress').on('click', stopTrendCollection);
     
-    // 开始新的采集按钮（进度卡片中的）
-    $('#newCollectionBtn').on('click', startNewCollection);
-    
     // 开始新的采集按钮（结果卡片中的）
     $('#newCollectionBtnInResults').on('click', startNewCollection);
     
@@ -351,7 +348,10 @@ function checkStatus(taskId) {
                     $('#stopBtn').prop('disabled', true);
                     $('#stopBtnInProgress').prop('disabled', true);
                     
-                    // 更新结果卡片数据
+                    // 隐藏进度卡片，显示结果卡片
+                    $('#progressCard').hide();
+                    
+                    // 更新结果卡片数据并显示
                     if ($('#resultsCard').length) {
                         const results = data.results || {};
                         $('#keywordsCollectedResult').text(results.keywords_collected || 0);
