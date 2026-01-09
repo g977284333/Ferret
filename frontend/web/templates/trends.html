@@ -107,9 +107,16 @@
     </form>
 </div>
 
-<!-- 采集进度卡片 -->
-<div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-6" id="progressCard" style="display: none;">
-    <h2 class="text-xl font-bold text-gray-900 mb-4">📊 采集进度</h2>
+    <!-- 采集进度卡片 -->
+    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-6" id="progressCard" style="display: none;">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900">📊 采集进度</h2>
+            <!-- 停止按钮 - 放在进度卡片中，确保始终可见 -->
+            <button type="button" id="stopBtnInProgress" 
+                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 font-medium">
+                ⏹ 停止采集
+            </button>
+        </div>
     
     <div class="space-y-4">
         <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">

@@ -47,8 +47,11 @@ function initTrendsPage() {
         startTrendCollection();
     });
     
-    // 停止按钮
+    // 停止按钮（表单中的）
     $('#stopBtn').on('click', stopTrendCollection);
+    
+    // 停止按钮（进度卡片中的）
+    $('#stopBtnInProgress').on('click', stopTrendCollection);
     
     // 当任务开始时，启用停止按钮
     // 当任务结束时，禁用停止按钮
@@ -311,6 +314,7 @@ function checkStatus(taskId) {
                     
                     // 禁用停止按钮
                     $('#stopBtn').prop('disabled', true);
+                    $('#stopBtnInProgress').prop('disabled', true);
                     
                     showMessage('采集任务出错: ' + (data.error || '未知错误'), 'error');
                 } else if (taskStatus === 'stopped') {
@@ -320,6 +324,7 @@ function checkStatus(taskId) {
                     
                     // 禁用停止按钮
                     $('#stopBtn').prop('disabled', true);
+                    $('#stopBtnInProgress').prop('disabled', true);
                     
                     showMessage('采集任务已停止', 'info');
                 }
@@ -409,6 +414,7 @@ function stopTrendCollection() {
             
             // 禁用停止按钮
             $('#stopBtn').prop('disabled', true);
+            $('#stopBtnInProgress').prop('disabled', true);
         } else {
             showMessage(response.message || '停止失败', 'error');
         }
