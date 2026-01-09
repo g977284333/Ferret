@@ -240,7 +240,28 @@ function checkStatus(taskId) {
                     updateProgress(data);
                     
                     showMessage('趋势采集完成！', 'success');
-                    loadCollectedKeywords();
+                    
+                    // 保存采集的关键词（用于后续自动加载图表）
+                    const collectedKeywords = keywords.length > 0 ? [...keywords] : [];
+                    
+                    // 刷新关键词列表，完成后自动选择并加载图表
+                    loadCollectedKeywords(function() {
+                        // 如果采集了关键词，自动选择第一个并加载图表
+                        if (collectedKeywords.length > 0) {
+                            const firstKeyword = collectedKeywords[0];
+                            // 等待关键词列表更新完成
+                            setTimeout(function() {
+                                // 设置图表关键词选择
+                                const chartKeywordSelect = $('#chartKeyword');
+                                if (chartKeywordSelect.find(`option[value="${firstKeyword}"]`).length > 0) {
+                                    chartKeywordSelect.val(firstKeyword);
+                                    // 自动加载图表
+                                    loadTrendChart();
+                                    showMessage(`已自动加载关键词 "${firstKeyword}" 的趋势图表`, 'info');
+                                }
+                            }, 800);
+                        }
+                    });
                     loadHotKeywords();
                 } else if (taskStatus === 'error') {
                     clearInterval(statusInterval);
@@ -348,7 +369,7 @@ function loadHotKeywords() {
         });
 }
 
-function loadCollectedKeywords() {
+function loadCollectedKeywords(callback) {
     $.get('/api/v1/trends/keywords')
         .done(function(response) {
             if (response.status === 'success' && response.data.keywords) {
@@ -358,15 +379,23 @@ function loadCollectedKeywords() {
                 
                 if (keywords.length === 0) {
                     container.html('<p class="text-gray-400 text-sm">暂无已采集的关键词</p>');
+                    // 清空图表选择
+                    $('#chartKeyword').empty().append('<option value="">选择关键词...</option>');
+                    if (callback) callback();
                     return;
                 }
                 
                 // 更新图表关键词选择
                 const chartKeyword = $('#chartKeyword');
+                const currentValue = chartKeyword.val(); // 保存当前选择
                 chartKeyword.empty().append('<option value="">选择关键词...</option>');
                 keywords.forEach(kw => {
                     chartKeyword.append(`<option value="${kw}">${kw}</option>`);
                 });
+                // 恢复之前的选择（如果存在且有效）
+                if (currentValue && keywords.includes(currentValue)) {
+                    chartKeyword.val(currentValue);
+                }
                 
                 keywords.slice(0, 20).forEach(keyword => {
                     // 转义单引号，避免onclick中的JavaScript错误
@@ -382,10 +411,17 @@ function loadCollectedKeywords() {
                     `);
                     container.append(html);
                 });
+                
+                // 执行回调
+                if (callback) callback();
+            } else {
+                container.html('<p class="text-gray-400 text-sm">暂无已采集的关键词</p>');
+                if (callback) callback();
             }
         })
         .fail(function() {
             $('#collectedKeywordsList').html('<p class="text-red-400 text-sm">加载失败</p>');
+            if (callback) callback();
         });
 }
 
