@@ -464,12 +464,49 @@ def export_trends():
             }
         )
     elif format_type == 'excel':
-        # 导出Excel
+        # 导出Excel（带多个sheet和统计信息）
         try:
             from io import BytesIO
             output = BytesIO()
+            
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                # Sheet 1: 原始数据
                 df.to_excel(writer, index=False, sheet_name='趋势数据')
+                
+                # Sheet 2: 统计摘要（如果有关键词）
+                if 'keyword' in df.columns and len(df['keyword'].unique()) > 0:
+                    summary_data = []
+                    for kw in df['keyword'].unique():
+                        kw_df = df[df['keyword'] == kw].copy()
+                        # 需要将date列转换回datetime用于分析
+                        if 'date' in kw_df.columns:
+                            kw_df['date'] = pd.to_datetime(kw_df['date'], errors='coerce', format='mixed')
+                            kw_df = kw_df.dropna(subset=['date'])
+                        
+                        if len(kw_df) >= 2:
+                            try:
+                                analysis = analyzer.analyze_trend_growth(
+                                    kw_df.copy(), kw, platform
+                                )
+                                summary_data.append({
+                                    '关键词': kw,
+                                    '平台': platform,
+                                    '数据点数': len(kw_df),
+                                    '增长率(%)': round(analysis.get('growth_rate', 0), 2),
+                                    '趋势': analysis.get('trend', 'stable'),
+                                    '平均热度': round(analysis.get('avg_value', 0), 2),
+                                    '最大热度': round(analysis.get('max_value', 0), 2),
+                                    '最小热度': round(analysis.get('min_value', 0), 2),
+                                    '波动性(%)': round(analysis.get('volatility', 0), 2),
+                                    '趋势分数': round(analyzer.calculate_trend_score(analysis), 3)
+                                })
+                            except Exception as e:
+                                print(f"生成统计摘要失败（关键词: {kw}）: {e}")
+                    
+                    if summary_data:
+                        summary_df = pd.DataFrame(summary_data)
+                        summary_df.to_excel(writer, index=False, sheet_name='统计摘要')
+            
             output.seek(0)
             
             filename = f'trends_{keyword or "all"}_{platform}_{datetime.now().strftime("%Y%m%d")}.xlsx'
