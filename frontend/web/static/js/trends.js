@@ -330,6 +330,7 @@ function loadHotKeywords() {
         .done(function(response) {
             console.log('Hot keywords response:', response);
             const container = $('#hotKeywordsList');
+            const thresholdLabel = $('#hotKeywordsThreshold');
             container.empty();
             
             if (response.status === 'success' && response.data) {
@@ -337,13 +338,30 @@ function loadHotKeywords() {
                 
                 if (hotKeywords.length === 0) {
                     container.html('<p class="text-gray-400 text-sm">暂无热门关键词<br><span class="text-xs">（需要更多数据或降低增长率阈值）</span></p>');
+                    if (thresholdLabel) thresholdLabel.text('增长率 ≥ 5%');
                     return;
+                }
+                
+                // 检查是否所有关键词都符合阈值（如果不符合，说明返回了所有关键词）
+                const allMeetThreshold = hotKeywords.every(item => (item.growth_rate || 0) >= 5);
+                if (!allMeetThreshold && thresholdLabel) {
+                    thresholdLabel.text('所有关键词（按增长率排序）');
+                } else if (thresholdLabel) {
+                    thresholdLabel.text('增长率 ≥ 5%');
                 }
                 
                 hotKeywords.slice(0, 10).forEach(item => {
                     const trend = item.trend || 'stable';
                     const growthRate = item.growth_rate || 0;
                     const trendIcon = trend === 'rising' ? '📈' : trend === 'declining' ? '📉' : '➡️';
+                    // 根据增长率显示不同颜色
+                    let colorClass = 'text-gray-600';
+                    if (growthRate >= 5) {
+                        colorClass = 'text-green-600';
+                    } else if (growthRate < 0) {
+                        colorClass = 'text-red-600';
+                    }
+                    
                     const html = $(`
                         <div class="flex items-center justify-between p-2 bg-gray-50 rounded mb-2">
                             <div>
@@ -351,7 +369,7 @@ function loadHotKeywords() {
                                 <span class="text-xs text-gray-500 ml-2">${item.platform || 'google_trends'}</span>
                             </div>
                             <div class="text-right">
-                                <div class="text-sm font-semibold ${growthRate > 0 ? 'text-green-600' : growthRate < 0 ? 'text-red-600' : 'text-gray-600'}">
+                                <div class="text-sm font-semibold ${colorClass}">
                                     ${trendIcon} ${growthRate > 0 ? '+' : ''}${growthRate.toFixed(1)}%
                                 </div>
                             </div>
