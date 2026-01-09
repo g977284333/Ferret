@@ -47,7 +47,10 @@ class TrendAnalyzer:
         
         # 确保日期列是datetime类型
         if 'date' in df.columns:
-            df['date'] = pd.to_datetime(df['date'])
+            # 使用更宽松的日期解析，支持多种格式
+            df['date'] = pd.to_datetime(df['date'], errors='coerce', format='mixed')
+            # 移除无效日期
+            df = df.dropna(subset=['date'])
             df = df.sort_values('date')
         
         # 确保value列存在

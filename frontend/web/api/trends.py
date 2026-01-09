@@ -283,33 +283,64 @@ def get_keywords():
 @trends_bp.route('/analyze/<keyword>', methods=['GET'])
 def analyze_trend(keyword):
     """分析关键词趋势"""
-    platform = request.args.get('platform', 'google_trends')
-    
-    data_manager = DataManager()
-    analyzer = TrendAnalyzer()
-    
-    # 获取趋势数据
-    df = data_manager.get_trend_data(keyword=keyword, platform=platform)
-    
-    if df.empty:
+    try:
+        platform = request.args.get('platform', 'google_trends')
+        
+        data_manager = DataManager()
+        analyzer = TrendAnalyzer()
+        
+        # 获取趋势数据
+        df = data_manager.get_trend_data(keyword=keyword, platform=platform)
+        
+        if df.empty:
+            return jsonify({
+                'status': 'error',
+                'error_code': 'NO_DATA',
+                'message': f'未找到关键词 "{keyword}" 在平台 "{platform}" 的数据'
+            }), 404
+        
+        # 分析趋势
+        try:
+            analysis = analyzer.analyze_trend_growth(df, keyword, platform)
+        except Exception as e:
+            import traceback
+            print(f"分析趋势增长失败: {e}")
+            traceback.print_exc()
+            return jsonify({
+                'status': 'error',
+                'error_code': 'ANALYSIS_ERROR',
+                'message': f'分析趋势增长失败: {str(e)}'
+            }), 500
+        
+        try:
+            summary = analyzer.get_trend_summary(df, keyword, platform)
+        except Exception as e:
+            import traceback
+            print(f"获取趋势摘要失败: {e}")
+            traceback.print_exc()
+            return jsonify({
+                'status': 'error',
+                'error_code': 'SUMMARY_ERROR',
+                'message': f'获取趋势摘要失败: {str(e)}'
+            }), 500
+        
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'analysis': analysis,
+                'summary': summary,
+                'data_points': len(df)
+            }
+        })
+    except Exception as e:
+        import traceback
+        print(f"分析关键词趋势失败: {e}")
+        traceback.print_exc()
         return jsonify({
             'status': 'error',
-            'error_code': 'NO_DATA',
-            'message': f'未找到关键词 "{keyword}" 在平台 "{platform}" 的数据'
-        }), 404
-    
-    # 分析趋势
-    analysis = analyzer.analyze_trend_growth(df, keyword, platform)
-    summary = analyzer.get_trend_summary(df, keyword, platform)
-    
-    return jsonify({
-        'status': 'success',
-        'data': {
-            'analysis': analysis,
-            'summary': summary,
-            'data_points': len(df)
-        }
-    })
+            'error_code': 'INTERNAL_ERROR',
+            'message': f'内部错误: {str(e)}'
+        }), 500
 
 
 @trends_bp.route('/compare', methods=['POST'])
@@ -380,14 +411,22 @@ def get_hot_keywords():
     # 分析每个关键词
     trends_data = []
     for keyword in keywords:
-        df = data_manager.get_trend_data(keyword=keyword, platform=platform)
-        if not df.empty and len(df) >= 2:  # 至少需要2个数据点才能分析
-            try:
-                analysis = analyzer.analyze_trend_growth(df, keyword, platform)
-                trends_data.append(analysis)
-            except Exception as e:
-                print(f"分析关键词 {keyword} 失败: {e}")
-                continue
+        try:
+            df = data_manager.get_trend_data(keyword=keyword, platform=platform)
+            if not df.empty and len(df) >= 2:  # 至少需要2个数据点才能分析
+                try:
+                    analysis = analyzer.analyze_trend_growth(df, keyword, platform)
+                    # 确保analysis包含所有必要字段
+                    if analysis and 'growth_rate' in analysis:
+                        trends_data.append(analysis)
+                except Exception as e:
+                    print(f"分析关键词 {keyword} 失败: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+        except Exception as e:
+            print(f"获取关键词 {keyword} 数据失败: {e}")
+            continue
     
     # 识别热门关键词
     hot_keywords = analyzer.identify_hot_keywords(trends_data, min_growth_rate=min_growth_rate)
