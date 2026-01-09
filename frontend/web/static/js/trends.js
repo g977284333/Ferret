@@ -58,9 +58,22 @@ function initTrendsPage() {
     
     // 查看已采集关键词按钮
     $('#viewKeywordsBtn').on('click', function() {
+        console.log('viewKeywordsBtn clicked');
+        
+        // 先刷新关键词列表
+        loadCollectedKeywords();
+        
         // 滚动到已采集关键词区域
-        $('html, body').animate({
-            scrollTop: $('#collectedKeywordsList').offset().top - 20
+        setTimeout(function() {
+            const targetElement = $('#collectedKeywordsList').closest('.bg-white');
+            if (targetElement.length) {
+                $('html, body').animate({
+                    scrollTop: targetElement.offset().top - 20
+                }, 500);
+                showMessage('已滚动到已采集关键词列表', 'info');
+            } else {
+                showMessage('未找到已采集关键词区域', 'warning');
+            }
         }, 300);
     });
     
@@ -407,6 +420,48 @@ function updateProgress(data) {
     $('#currentPlatform').text(progress.current_platform || '-');
 }
 
+function startNewCollection() {
+    console.log('startNewCollection called');
+    
+    // 重置所有状态
+    currentTaskId = null;
+    
+    // 停止监控
+    if (statusInterval) {
+        clearInterval(statusInterval);
+        statusInterval = null;
+    }
+    
+    // 隐藏进度卡片和结果卡片
+    $('#progressCard').hide();
+    $('#resultsCard').hide();
+    
+    // 显示采集表单
+    $('#trendForm').show();
+    
+    // 重置表单
+    $('#keywordInput').val('');
+    keywords = [];
+    renderKeywords();
+    
+    // 重置按钮状态
+    $('#startBtn').prop('disabled', false).text('▶ 开始采集');
+    $('#stopBtn').prop('disabled', true).show();
+    $('#stopBtnInProgress').prop('disabled', true);
+    
+    // 滚动到表单顶部
+    setTimeout(function() {
+        const formElement = $('#trendForm').closest('.bg-white');
+        if (formElement.length) {
+            $('html, body').animate({
+                scrollTop: formElement.offset().top - 20
+            }, 500);
+        }
+    }, 100);
+    
+    showMessage('已重置，可以开始新的采集', 'info');
+}
+
 function stopTrendCollection() {
     if (!currentTaskId) {
         showMessage('没有正在运行的任务', 'warning');
@@ -448,6 +503,22 @@ function stopTrendCollection() {
             // 禁用停止按钮
             $('#stopBtn').prop('disabled', true);
             $('#stopBtnInProgress').prop('disabled', true);
+            
+            // 隐藏进度卡片，显示结果卡片
+            $('#progressCard').hide();
+            
+            // 更新结果卡片数据并显示
+            if ($('#resultsCard').length) {
+                const task = window.trendTasks && window.trendTasks[currentTaskId];
+                if (task && task.results) {
+                    $('#keywordsCollectedResult').text(task.results.keywords_collected || 0);
+                    $('#trendsSavedResult').text(task.results.trends_saved || 0);
+                } else {
+                    $('#keywordsCollectedResult').text('0');
+                    $('#trendsSavedResult').text('0');
+                }
+                $('#resultsCard').show();
+            }
         } else {
             showMessage(response.message || '停止失败', 'error');
         }
