@@ -428,14 +428,16 @@ def get_hot_keywords():
             print(f"获取关键词 {keyword} 数据失败: {e}")
             continue
     
-    # 识别热门关键词
+    # 识别热门关键词（增长率 >= 阈值）
     hot_keywords = analyzer.identify_hot_keywords(trends_data, min_growth_rate=min_growth_rate)
     
-    # 如果热门关键词为空，返回所有关键词（按增长率排序）
-    if not hot_keywords and trends_data:
-        # 按增长率排序，返回前10个
+    # 如果热门关键词为空或太少，返回所有关键词（按增长率排序）
+    # 这样可以确保用户能看到所有采集的关键词，即使增长率不高
+    if len(hot_keywords) < 3 and trends_data:
+        # 按增长率排序，返回前10个（包括负增长率的）
         trends_data.sort(key=lambda x: x.get('growth_rate', 0), reverse=True)
         hot_keywords = trends_data[:10]
+        print(f"[Hot Keywords] 热门关键词少于3个，返回所有关键词（按增长率排序）")
     
     return jsonify({
         'status': 'success',
