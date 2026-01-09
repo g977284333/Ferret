@@ -164,7 +164,7 @@
         </div>
     </div>
     
-    <div id="chartContainer" class="min-h-[400px] border border-gray-200 rounded-lg p-4 bg-gray-50">
+    <div id="chartContainer" class="border border-gray-200 rounded-lg p-4 bg-gray-50" style="position: relative; height: 400px;">
         <p class="text-gray-400 text-center mt-20">选择关键词并点击"加载图表"查看趋势</p>
     </div>
 </div>
@@ -177,5 +177,6 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chart.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/trends.js') }}"></script>
 {% endblock %}

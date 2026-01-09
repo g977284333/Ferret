@@ -5,6 +5,7 @@
 let keywords = [];
 let currentTaskId = null;
 let statusInterval = null;
+let trendChart = null; // Chart.js实例
 
 // 等待jQuery加载
 function initTrendsPage() {
@@ -475,6 +476,9 @@ function loadTrendChart() {
         return;
     }
     
+    // 显示加载状态
+    $('#chartContainer').html('<div class="text-center py-20"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div><p class="mt-4 text-gray-600">加载中...</p></div>');
+    
     $.get(`/api/v1/trends?keyword=${encodeURIComponent(keyword)}&platform=${platform}`)
         .done(function(response) {
             if (response.status === 'success' && response.data.trends) {
@@ -484,132 +488,396 @@ function loadTrendChart() {
                     return;
                 }
                 
-                // 使用简单的图表库或Canvas绘制
-                renderSimpleChart(trends, keyword);
+                // 使用Chart.js渲染图表
+                renderChartWithChartJS(trends, keyword, platform);
+            } else {
+                $('#chartContainer').html('<p class="text-gray-400 text-center mt-20">加载失败</p>');
             }
         })
-        .fail(function() {
+        .fail(function(xhr) {
+            console.error('Load chart failed:', xhr);
+            $('#chartContainer').html('<p class="text-red-400 text-center mt-20">加载图表数据失败</p>');
             showMessage('加载图表数据失败', 'error');
         });
 }
 
-function renderSimpleChart(trends, keyword) {
-    // 简单的图表渲染（可以使用Chart.js等库）
+function renderChartWithChartJS(trends, keyword, platform) {
+    // 使用Chart.js渲染图表
     const container = $('#chartContainer');
     container.empty();
     
-    // 提取数据
-    const dates = trends.map(t => t.date).sort();
-    const values = trends.map(t => parseFloat(t.value) || 0);
-    
-    // 创建简单的SVG图表
-    const width = container.width() - 40;
-    const height = 360;
-    const padding = 40;
-    
-    const maxValue = Math.max(...values, 1);
-    const minValue = Math.min(...values, 0);
-    const range = maxValue - minValue || 1;
-    
-    let svg = `<svg width="${width}" height="${height}" class="w-full">`;
-    
-    // 绘制坐标轴
-    svg += `<line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#ccc" stroke-width="2"/>`;
-    svg += `<line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="#ccc" stroke-width="2"/>`;
-    
-    // 绘制数据点
-    const points = [];
-    values.forEach((value, index) => {
-        const x = padding + (index / (values.length - 1 || 1)) * (width - 2 * padding);
-        const y = height - padding - ((value - minValue) / range) * (height - 2 * padding);
-        points.push(`${x},${y}`);
+    // 准备数据：按日期排序
+    const sortedTrends = trends.sort((a, b) => new Date(a.date) - new Date(b.date));
+    const dates = sortedTrends.map(t => {
+        const date = new Date(t.date);
+        // 格式化日期显示
+        return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
     });
+    const values = sortedTrends.map(t => parseFloat(t.value) || 0);
     
-    // 绘制折线
-    if (points.length > 1) {
-        svg += `<polyline points="${points.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="2"/>`;
+    // 创建canvas元素
+    const canvas = $('<canvas id="trendChart"></canvas>');
+    container.append(canvas);
+    
+    // 销毁旧图表
+    if (trendChart) {
+        trendChart.destroy();
     }
     
-    // 绘制数据点
-    points.forEach((point, index) => {
-        const [x, y] = point.split(',').map(Number);
-        svg += `<circle cx="${x}" cy="${y}" r="3" fill="#3b82f6"/>`;
+    // 创建Chart.js图表
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: keyword,
+                data: values,
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                pointBackgroundColor: 'rgb(59, 130, 246)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: `${keyword} - ${platform === 'google_trends' ? 'Google Trends' : platform} 搜索趋势`,
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    },
+                    padding: {
+                        top: 10,
+                        bottom: 20
+                    }
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: '搜索热度'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: '日期'
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
     });
     
-    svg += `</svg>`;
+    // 添加统计信息
+    const maxValue = Math.max(...values);
+    const minValue = Math.min(...values);
+    const avgValue = values.reduce((a, b) => a + b, 0) / values.length;
     
-    container.html(`
-        <div class="mb-4">
-            <h3 class="text-lg font-bold">${keyword} - 搜索趋势</h3>
-        </div>
-        ${svg}
-        <div class="mt-4 text-sm text-gray-600">
-            <p>数据点数: ${trends.length}</p>
-            <p>最大值: ${maxValue.toFixed(2)}</p>
-            <p>最小值: ${minValue.toFixed(2)}</p>
+    container.append(`
+        <div class="mt-4 grid grid-cols-3 gap-4 text-sm">
+            <div class="text-center p-3 bg-blue-50 rounded-lg">
+                <p class="text-gray-600">最大值</p>
+                <p class="text-lg font-bold text-blue-600">${maxValue.toFixed(2)}</p>
+            </div>
+            <div class="text-center p-3 bg-green-50 rounded-lg">
+                <p class="text-gray-600">平均值</p>
+                <p class="text-lg font-bold text-green-600">${avgValue.toFixed(2)}</p>
+            </div>
+            <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <p class="text-gray-600">最小值</p>
+                <p class="text-lg font-bold text-gray-600">${minValue.toFixed(2)}</p>
+            </div>
         </div>
     `);
 }
 
 function compareKeywords() {
-    const selectedKeywords = keywords.length > 0 ? keywords : [];
+    // 从已采集关键词列表获取关键词，或者使用当前关键词列表
+    const selectedKeywords = [];
+    
+    // 尝试从已采集关键词中获取
+    $('#collectedKeywordsList .font-medium').each(function() {
+        const keyword = $(this).text().trim();
+        if (keyword && !selectedKeywords.includes(keyword)) {
+            selectedKeywords.push(keyword);
+        }
+    });
+    
+    // 如果不够，使用当前关键词列表
+    if (selectedKeywords.length < 2 && keywords.length >= 2) {
+        selectedKeywords.push(...keywords.slice(0, 5)); // 最多5个
+    }
     
     if (selectedKeywords.length < 2) {
-        showMessage('请至少选择2个关键词进行对比', 'warning');
+        showMessage('请至少采集2个关键词才能进行对比', 'warning');
         return;
     }
     
-    $.ajax({
-        url: '/api/v1/trends/compare',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            keywords: selectedKeywords,
-            platform: 'google_trends'
-        })
-    })
-    .done(function(response) {
-        if (response.status === 'success' && response.data.comparison) {
-            const comparison = response.data.comparison;
+    const platform = $('#chartPlatform').val() || 'google_trends';
+    
+    // 显示加载状态
+    $('#chartContainer').html('<div class="text-center py-20"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div><p class="mt-4 text-gray-600">加载对比数据中...</p></div>');
+    
+    // 获取所有关键词的数据
+    const promises = selectedKeywords.map(kw => {
+        return $.get(`/api/v1/trends?keyword=${encodeURIComponent(kw)}&platform=${platform}`);
+    });
+    
+    $.when.apply($, promises)
+        .done(function() {
+            // 处理所有响应
+            const datasets = [];
+            const colors = [
+                'rgb(59, 130, 246)',   // blue
+                'rgb(16, 185, 129)',   // green
+                'rgb(245, 101, 101)',  // red
+                'rgb(251, 191, 36)',   // yellow
+                'rgb(139, 92, 246)'    // purple
+            ];
             
-            let html = `
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">关键词</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">增长率</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">趋势</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">平均热度</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-            `;
+            let allDates = new Set();
+            const trendsData = {};
             
-            comparison.forEach(item => {
-                html += `
-                    <tr>
-                        <td class="px-4 py-3 text-sm font-medium">${item.keyword}</td>
-                        <td class="px-4 py-3 text-sm ${item.growth_rate > 0 ? 'text-green-600' : 'text-red-600'}">
-                            ${item.growth_rate > 0 ? '+' : ''}${item.growth_rate.toFixed(1)}%
-                        </td>
-                        <td class="px-4 py-3 text-sm">${getTrendText(item.trend)}</td>
-                        <td class="px-4 py-3 text-sm">${item.avg_value.toFixed(2)}</td>
-                    </tr>
-                `;
+            // 收集所有数据
+            Array.from(arguments).forEach((response, index) => {
+                if (response.status === 'success' && response.data.trends) {
+                    const trends = response.data.trends.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const keyword = selectedKeywords[index];
+                    trendsData[keyword] = trends;
+                    trends.forEach(t => allDates.add(t.date));
+                }
             });
             
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            // 排序日期
+            const sortedDates = Array.from(allDates).sort((a, b) => new Date(a) - new Date(b));
+            const dateLabels = sortedDates.map(date => {
+                const d = new Date(date);
+                return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+            });
             
-            $('#analysisContent').html(html);
-            $('#analysisCard').show();
+            // 为每个关键词创建数据集
+            selectedKeywords.forEach((keyword, index) => {
+                if (trendsData[keyword]) {
+                    const values = sortedDates.map(date => {
+                        const trend = trendsData[keyword].find(t => t.date === date);
+                        return trend ? parseFloat(trend.value) || 0 : null;
+                    });
+                    
+                    datasets.push({
+                        label: keyword,
+                        data: values,
+                        borderColor: colors[index % colors.length],
+                        backgroundColor: colors[index % colors.length].replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    });
+                }
+            });
+            
+            if (datasets.length === 0) {
+                $('#chartContainer').html('<p class="text-gray-400 text-center mt-20">暂无数据</p>');
+                return;
+            }
+            
+            // 渲染对比图表
+            renderCompareChart(dateLabels, datasets, platform);
+            
+            // 同时显示对比表格
+            $.ajax({
+                url: '/api/v1/trends/compare',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    keywords: selectedKeywords,
+                    platform: platform
+                })
+            })
+            .done(function(response) {
+                if (response.status === 'success' && response.data.comparison) {
+                    const comparison = response.data.comparison;
+                    
+                    let html = `
+                        <div class="mt-6">
+                            <h3 class="text-lg font-bold mb-4">对比统计</h3>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">关键词</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">增长率</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">趋势</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">平均热度</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                    `;
+                    
+                    comparison.forEach(item => {
+                        html += `
+                            <tr>
+                                <td class="px-4 py-3 text-sm font-medium">${item.keyword}</td>
+                                <td class="px-4 py-3 text-sm ${item.growth_rate > 0 ? 'text-green-600' : 'text-red-600'}">
+                                    ${item.growth_rate > 0 ? '+' : ''}${item.growth_rate.toFixed(1)}%
+                                </td>
+                                <td class="px-4 py-3 text-sm">${getTrendText(item.trend)}</td>
+                                <td class="px-4 py-3 text-sm">${item.avg_value.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    
+                    $('#chartContainer').append(html);
+                }
+            })
+            .fail(function() {
+                console.error('Failed to load comparison data');
+            });
+        })
+        .fail(function() {
+            $('#chartContainer').html('<p class="text-red-400 text-center mt-20">加载对比数据失败</p>');
+            showMessage('加载对比数据失败', 'error');
+        });
+}
+
+function renderCompareChart(labels, datasets, platform) {
+    // 检查Chart.js是否已加载
+    if (typeof Chart === 'undefined') {
+        $('#chartContainer').html('<p class="text-red-400 text-center mt-20">Chart.js未加载，请刷新页面重试</p>');
+        console.error('Chart.js is not loaded');
+        return;
+    }
+    
+    const container = $('#chartContainer');
+    // 只清空图表部分，保留统计表格
+    const existingTable = container.find('table').parent().parent();
+    container.empty();
+    
+    // 创建canvas元素
+    const canvas = $('<canvas id="trendChart"></canvas>');
+    container.append(canvas);
+    
+    // 如果之前有表格，重新添加
+    if (existingTable.length > 0) {
+        container.append(existingTable);
+    }
+    
+    // 销毁旧图表
+    if (trendChart) {
+        trendChart.destroy();
+    }
+    
+    // 创建Chart.js对比图表
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: `关键词对比 - ${platform === 'google_trends' ? 'Google Trends' : platform}`,
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    },
+                    padding: {
+                        top: 10,
+                        bottom: 20
+                    }
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: '搜索热度'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: '日期'
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
         }
-    })
-    .fail(function() {
-        showMessage('对比失败', 'error');
     });
 }

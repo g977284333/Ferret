@@ -22,6 +22,10 @@ RESOURCES = {
     'flowbite_js': {
         'url': 'https://fastly.jsdelivr.net/npm/flowbite@2.2.1/dist/flowbite.min.js',
         'path': 'flowbite.min.js'
+    },
+    'chartjs': {
+        'url': 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+        'path': 'chart.min.js'
     }
 }
 
