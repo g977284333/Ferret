@@ -44,9 +44,19 @@ def run_trend_task(task_id, keywords, platforms, timeframe):
         print(f"[Trend Task {task_id}] 开始采集任务，关键词: {keywords}, 平台: {platforms}, 时间范围: {timeframe}")
         
         for keyword in keywords:
+            # 检查任务是否已停止
+            if task_id in trend_tasks and trend_tasks[task_id].get('status') == 'stopped':
+                print(f"[Trend Task {task_id}] 任务已停止")
+                break
+            
             trend_tasks[task_id]['progress']['current_keyword'] = keyword
             
             for platform in platforms:
+                # 检查任务是否已停止
+                if task_id in trend_tasks and trend_tasks[task_id].get('status') == 'stopped':
+                    print(f"[Trend Task {task_id}] 任务已停止")
+                    break
+                
                 trend_tasks[task_id]['progress']['current_platform'] = platform
                 
                 if platform == 'google_trends':

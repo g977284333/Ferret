@@ -371,15 +371,52 @@ function updateProgress(data) {
 
 function stopTrendCollection() {
     if (!currentTaskId) {
+        showMessage('没有正在运行的任务', 'warning');
         return;
     }
     
-    if (!confirm('确定要停止采集任务吗？')) {
+    // 确认停止
+    if (!confirm('确定要停止当前采集任务吗？')) {
         return;
     }
     
-    // TODO: 实现停止API
-    showMessage('停止功能待实现', 'info');
+    // 发送停止请求
+    $.ajax({
+        url: `/api/v1/trends/stop/${currentTaskId}`,
+        method: 'POST',
+        contentType: 'application/json'
+    })
+    .done(function(response) {
+        if (response.status === 'success') {
+            showMessage('采集任务已停止', 'success');
+            
+            // 更新任务状态为stopped
+            if (!window.trendTasks) {
+                window.trendTasks = {};
+            }
+            if (window.trendTasks[currentTaskId]) {
+                window.trendTasks[currentTaskId].status = 'stopped';
+            }
+            
+            // 停止监控
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+            }
+            
+            // 更新UI显示
+            updateStatusDisplay('stopped', '已停止');
+            
+            // 禁用停止按钮
+            $('#stopBtn').prop('disabled', true);
+        } else {
+            showMessage(response.message || '停止失败', 'error');
+        }
+    })
+    .fail(function(xhr) {
+        console.error('Stop trend collection failed:', xhr);
+        showMessage('停止失败: ' + (xhr.responseJSON?.message || '网络错误'), 'error');
+    });
 }
 
 function loadHotKeywords() {
