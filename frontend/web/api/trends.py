@@ -220,6 +220,51 @@ def get_trend_status(task_id):
     return jsonify(response)
 
 
+@trends_bp.route('/stop/<task_id>', methods=['POST'])
+def stop_trend_collection(task_id):
+    """停止趋势采集任务"""
+    if task_id not in trend_tasks:
+        # 尝试从数据库获取
+        data_manager = DataManager()
+        task = data_manager.get_trend_task(task_id)
+        if not task:
+            return jsonify({
+                'status': 'error',
+                'error_code': 'TASK_NOT_FOUND',
+                'message': '任务不存在'
+            }), 404
+        trend_tasks[task_id] = task
+    
+    task = trend_tasks[task_id]
+    
+    # 只有运行中的任务才能停止
+    if task['status'] not in ['pending', 'running']:
+        return jsonify({
+            'status': 'error',
+            'error_code': 'INVALID_STATUS',
+            'message': f'任务状态为 {task["status"]}，无法停止'
+        }), 400
+    
+    # 设置停止标志
+    task['status'] = 'stopped'
+    
+    # 更新数据库
+    data_manager = DataManager()
+    data_manager.save_trend_task(
+        task_id=task_id,
+        keywords=task.get('keywords', []),
+        platforms=task.get('platforms', []),
+        timeframe=task.get('timeframe', 'today 12-m'),
+        status='stopped',
+        progress=task.get('progress', {})
+    )
+    
+    return jsonify({
+        'status': 'success',
+        'message': '趋势采集任务已停止'
+    })
+
+
 @trends_bp.route('', methods=['GET'])
 def get_trends():
     """获取趋势数据列表"""
