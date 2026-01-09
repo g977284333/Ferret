@@ -886,32 +886,39 @@ function renderChartWithChartJS(trends, keyword, platform) {
 
 // 导出趋势数据
 function exportTrendsData() {
-    // 获取当前选中的关键词，如果没有则导出所有
-    const selectedKeyword = $('#chartKeyword').val();
-    const platform = $('#chartPlatform').val() || 'google_trends';
-    
-    if (!selectedKeyword) {
-        // 如果没有选中关键词，导出所有数据
-        if (!confirm('未选择关键词，将导出所有趋势数据。是否继续？')) {
-            return;
+    try {
+        // 获取当前选中的关键词，如果没有则导出所有
+        const selectedKeyword = $('#chartKeyword').val();
+        const platform = $('#chartPlatform').val() || 'google_trends';
+        
+        if (!selectedKeyword) {
+            // 如果没有选中关键词，导出所有数据
+            if (!confirm('未选择关键词，将导出所有趋势数据。是否继续？')) {
+                return;
+            }
         }
+        
+        // 构建导出URL
+        const params = new URLSearchParams({
+            format: 'csv',
+            platform: platform
+        });
+        
+        if (selectedKeyword) {
+            params.append('keyword', selectedKeyword);
+        }
+        
+        const url = `/api/v1/trends/export?${params.toString()}`;
+        
+        console.log('Export URL:', url);
+        
+        // 使用window.location直接跳转，这样更可靠
+        window.location.href = url;
+        showMessage('正在导出趋势数据...', 'info');
+    } catch (error) {
+        console.error('Export trends data error:', error);
+        showMessage('导出失败: ' + error.message, 'error');
     }
-    
-    // 构建导出URL
-    const params = new URLSearchParams({
-        format: 'csv',
-        platform: platform
-    });
-    
-    if (selectedKeyword) {
-        params.append('keyword', selectedKeyword);
-    }
-    
-    const url = `/api/v1/trends/export?${params.toString()}`;
-    
-    // 打开下载链接
-    window.open(url, '_blank');
-    showMessage('正在导出趋势数据...', 'info');
 }
 
 function compareKeywords() {
