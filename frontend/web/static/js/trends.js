@@ -47,9 +47,6 @@ function initTrendsPage() {
         startTrendCollection();
     });
     
-    // 停止按钮（表单中的）
-    $('#stopBtn').on('click', stopTrendCollection);
-    
     // 停止按钮（进度卡片中的）
     $('#stopBtnInProgress').on('click', stopTrendCollection);
     
@@ -446,7 +443,6 @@ function startNewCollection() {
     
     // 重置按钮状态
     $('#startBtn').prop('disabled', false).text('▶ 开始采集');
-    $('#stopBtn').prop('disabled', true).show();
     $('#stopBtnInProgress').prop('disabled', true);
     
     // 滚动到表单顶部
