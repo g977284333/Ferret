@@ -342,13 +342,17 @@ function updateStatusDisplay(status, text) {
     if (statusText) statusText.text(text || '运行中...');
     
     if (statusIndicator) {
-        statusIndicator.removeClass('bg-blue-500 bg-green-500 bg-red-500 bg-yellow-500 animate-pulse');
+        statusIndicator.removeClass('bg-blue-500 bg-green-500 bg-red-500 bg-yellow-500 bg-gray-500 animate-pulse');
         if (status === 'running') {
             statusIndicator.addClass('bg-blue-500 animate-pulse');
         } else if (status === 'completed') {
             statusIndicator.addClass('bg-green-500');
         } else if (status === 'error') {
             statusIndicator.addClass('bg-red-500');
+        } else if (status === 'stopped') {
+            statusIndicator.addClass('bg-gray-500');
+        } else {
+            statusIndicator.addClass('bg-yellow-500');
         }
     }
 }
