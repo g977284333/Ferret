@@ -219,11 +219,54 @@ def export_opportunities():
             'message': '没有数据可导出'
         }), 400
     
+    # 转换为DataFrame
     df = pd.DataFrame(opportunities)
+    
+    # 列名映射为中文（完整的映射表）
+    column_mapping = {
+        'id': 'ID',
+        'app_id': 'App ID',
+        'name': '应用名称',
+        'category': '分类',
+        'rating': '评分',
+        'review_count': '评论数',
+        'price': '价格',
+        'opportunity_score': '机会分数',
+        'url': '链接',
+        'description': '描述',
+        'release_date': '发布日期',
+        'current_version': '当前版本',
+        'current_version_date': '版本更新日期',
+        'seller_name': '开发者',
+        'file_size': '文件大小',
+        'content_advisory_rating': '内容评级',
+        'current_version_rating': '当前版本评分',
+        'current_version_reviews': '当前版本评论数',
+        'minimum_os_version': '最低系统版本',
+        'bundle_id': 'Bundle ID',
+        'created_at': '创建时间',
+        'language_codes': '支持语言',
+        'artwork_url': '图标URL',
+        'screenshot_urls': '截图URLs',
+        'supported_devices': '支持设备',
+        'is_game_center_enabled': '支持Game Center'
+    }
+    
+    # 创建新的DataFrame，直接使用映射后的列名
+    # 确保映射真正生效
+    df_export = pd.DataFrame()
+    for col in df.columns:
+        new_col_name = column_mapping.get(col, col)
+        df_export[new_col_name] = df[col]
+    
+    # 调试：打印列名（用于排查问题）
+    print(f"[导出] 原始列名: {list(df.columns)}")
+    print(f"[导出] 映射后列名: {list(df_export.columns)}")
+    print(f"[导出] 数据行数: {len(df_export)}")
     
     if format_type == 'csv':
         # 导出CSV
-        csv = df.to_csv(index=False, encoding='utf-8-sig')
+        csv = df_export.to_csv(index=False, encoding='utf-8-sig')
         
         return Response(
             csv,
@@ -238,7 +281,7 @@ def export_opportunities():
             from io import BytesIO
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False, sheet_name='机会列表')
+                df_export.to_excel(writer, index=False, sheet_name='机会列表')
             output.seek(0)
             
             return Response(
@@ -250,7 +293,7 @@ def export_opportunities():
             )
         except ImportError:
             # 如果没有openpyxl，返回CSV
-            csv = df.to_csv(index=False, encoding='utf-8-sig')
+            csv = df_export.to_csv(index=False, encoding='utf-8-sig')
             return Response(
                 csv,
                 mimetype='text/csv',

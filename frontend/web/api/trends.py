@@ -450,9 +450,25 @@ def export_trends():
     other_columns = [col for col in df.columns if col not in column_order]
     df = df[column_order + other_columns]
     
+    # 列名映射为中文
+    column_mapping = {
+        'keyword': '关键词',
+        'platform': '平台',
+        'date': '日期',
+        'value': '搜索热度',
+        'growth_rate': '增长率(%)',
+        'trend': '趋势',
+        'avg_value': '平均热度',
+        'volatility': '波动性(%)',
+        'metadata': '元数据'
+    }
+    
+    # 重命名列（只重命名存在的列）
+    df_export = df.rename(columns={col: column_mapping.get(col, col) for col in df.columns})
+    
     if format_type == 'csv':
         # 导出CSV
-        csv = df.to_csv(index=False, encoding='utf-8-sig')
+        csv = df_export.to_csv(index=False, encoding='utf-8-sig')
         
         filename = f'trends_{keyword or "all"}_{platform}_{datetime.now().strftime("%Y%m%d")}.csv'
         
@@ -471,7 +487,7 @@ def export_trends():
             
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 # Sheet 1: 原始数据
-                df.to_excel(writer, index=False, sheet_name='趋势数据')
+                df_export.to_excel(writer, index=False, sheet_name='趋势数据')
                 
                 # Sheet 2: 统计摘要（如果有关键词）
                 if 'keyword' in df.columns and len(df['keyword'].unique()) > 0:
@@ -520,7 +536,7 @@ def export_trends():
             )
         except ImportError:
             # 如果没有openpyxl，返回CSV
-            csv = df.to_csv(index=False, encoding='utf-8-sig')
+            csv = df_export.to_csv(index=False, encoding='utf-8-sig')
             filename = f'trends_{keyword or "all"}_{platform}_{datetime.now().strftime("%Y%m%d")}.csv'
             return Response(
                 csv,

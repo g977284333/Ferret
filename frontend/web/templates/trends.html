@@ -256,8 +256,8 @@
     </div>
 </div>
 
-<!-- 趋势图表 -->
-<div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-6">
+<!-- 趋势图表 - 通栏宽度，突破container限制 -->
+<div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-6" style="margin-left: calc(-50vw + 50%); margin-right: calc(-50vw + 50%); width: 100vw; max-width: 100vw; padding-left: calc(50vw - 50% + 1.5rem); padding-right: calc(50vw - 50% + 1.5rem); box-sizing: border-box;">
     <h2 class="text-xl font-bold text-gray-900 mb-4">📈 趋势图表</h2>
     
     <div class="mb-4">
@@ -277,7 +277,7 @@
         </div>
     </div>
     
-    <div id="chartContainer" class="border border-gray-200 rounded-lg p-4 bg-gray-50" style="position: relative; height: 400px;">
+    <div id="chartContainer" class="border border-gray-200 rounded-lg p-4 bg-gray-50" style="position: relative; height: 400px; width: 100%;">
         <p class="text-gray-400 text-center mt-20">选择关键词并点击"加载图表"查看趋势</p>
     </div>
 </div>
