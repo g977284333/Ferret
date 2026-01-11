@@ -252,6 +252,106 @@ class TrendAnalyzer:
         }
         
         return summary
+    
+    def recommend_opportunities(self, trends_data: List[Dict], 
+                               min_trend_score: float = 0.6,
+                               min_growth_rate: float = 15.0,
+                               min_avg_value: float = 30.0) -> List[Dict]:
+        """
+        推荐高机会关键词
+        
+        推荐策略：
+        1. 趋势分数 >= min_trend_score (默认0.6)
+        2. 增长率 >= min_growth_rate (默认15%)
+        3. 平均热度 >= min_avg_value (默认30)
+        4. 数据点数量 >= 30 (至少1个月的数据)
+        5. 波动率 < 40% (趋势相对稳定)
+        
+        Args:
+            trends_data: 趋势分析结果列表
+            min_trend_score: 最小趋势分数阈值
+            min_growth_rate: 最小增长率阈值（%）
+            min_avg_value: 最小平均热度阈值
+            
+        Returns:
+            推荐的关键词列表，按机会分数排序
+        """
+        recommendations = []
+        
+        for trend in trends_data:
+            trend_score = trend.get('trend_score', 0)
+            growth_rate = trend.get('growth_rate', 0)
+            avg_value = trend.get('avg_value', 0)
+            volatility = trend.get('volatility', 0)
+            data_points = trend.get('data_points', 0)
+            
+            # 应用推荐策略
+            if (trend_score >= min_trend_score and
+                growth_rate >= min_growth_rate and
+                avg_value >= min_avg_value and
+                data_points >= 30 and
+                volatility < 40):
+                
+                # 计算综合机会分数（0-100）
+                opportunity_score = (
+                    trend_score * 40 +  # 趋势分数权重40%
+                    min(growth_rate / 100, 1.0) * 30 +  # 增长率权重30%
+                    min(avg_value / 100, 1.0) * 20 +  # 热度权重20%
+                    min((100 - volatility) / 100, 1.0) * 10  # 稳定性权重10%
+                ) * 100
+                
+                recommendation = {
+                    'keyword': trend.get('keyword'),
+                    'platform': trend.get('platform'),
+                    'opportunity_score': round(opportunity_score, 2),
+                    'trend_score': round(trend_score, 3),
+                    'growth_rate': round(growth_rate, 2),
+                    'avg_value': round(avg_value, 2),
+                    'volatility': round(volatility, 2),
+                    'data_points': data_points,
+                    'trend': trend.get('trend', 'stable'),
+                    'reason': self._generate_recommendation_reason(trend, opportunity_score)
+                }
+                recommendations.append(recommendation)
+        
+        # 按机会分数排序
+        recommendations.sort(key=lambda x: x['opportunity_score'], reverse=True)
+        
+        return recommendations
+    
+    def _generate_recommendation_reason(self, trend: Dict, opportunity_score: float) -> str:
+        """生成推荐理由"""
+        reasons = []
+        
+        growth_rate = trend.get('growth_rate', 0)
+        avg_value = trend.get('avg_value', 0)
+        volatility = trend.get('volatility', 0)
+        trend_type = trend.get('trend', 'stable')
+        
+        if growth_rate > 30:
+            reasons.append(f"快速增长（增长率{growth_rate:.1f}%）")
+        elif growth_rate > 15:
+            reasons.append(f"稳定增长（增长率{growth_rate:.1f}%）")
+        
+        if avg_value > 70:
+            reasons.append("搜索热度高")
+        elif avg_value > 40:
+            reasons.append("搜索热度中等")
+        
+        if volatility < 20:
+            reasons.append("趋势稳定")
+        elif volatility < 35:
+            reasons.append("趋势相对稳定")
+        
+        if trend_type == 'rising':
+            reasons.append("上升趋势明显")
+        elif trend_type == 'slightly_rising':
+            reasons.append("呈现上升趋势")
+        
+        if not reasons:
+            reasons.append("综合评分较高")
+        
+        return "；".join(reasons)
 
 
 def main():

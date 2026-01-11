@@ -343,6 +343,131 @@ def get_keywords():
     })
 
 
+@trends_bp.route('/all', methods=['GET'])
+def get_all_trends():
+    """获取所有趋势数据的概览（自动显示全部）"""
+    data_manager = DataManager()
+    analyzer = TrendAnalyzer()
+    
+    # 获取所有关键词
+    keywords = data_manager.get_trend_keywords()
+    
+    if not keywords:
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'trends': [],
+                'total': 0,
+                'message': '暂无趋势数据，请先采集数据'
+            }
+        })
+    
+    # 分析每个关键词的趋势
+    all_trends = []
+    for keyword in keywords:
+        # 获取该关键词的趋势数据
+        df = data_manager.get_trend_data(keyword=keyword, platform='google_trends')
+        
+        if not df.empty:
+            # 分析趋势
+            analysis = analyzer.analyze_trend_growth(df, keyword, 'google_trends')
+            trend_score = analyzer.calculate_trend_score(analysis)
+            
+            trend_summary = {
+                'keyword': keyword,
+                'platform': 'google_trends',
+                'trend': analysis.get('trend', 'stable'),
+                'growth_rate': round(analysis.get('growth_rate', 0), 2),
+                'trend_score': round(trend_score, 3),
+                'avg_value': round(analysis.get('avg_value', 0), 2),
+                'max_value': round(analysis.get('max_value', 0), 2),
+                'min_value': round(analysis.get('min_value', 0), 2),
+                'volatility': round(analysis.get('volatility', 0), 2),
+                'data_points': analysis.get('data_points', len(df)),
+                'latest_date': str(df['date'].max()) if 'date' in df.columns and not df.empty else None,
+                'earliest_date': str(df['date'].min()) if 'date' in df.columns and not df.empty else None
+            }
+            all_trends.append(trend_summary)
+    
+    # 按趋势分数排序
+    all_trends.sort(key=lambda x: x.get('trend_score', 0), reverse=True)
+    
+    return jsonify({
+        'status': 'success',
+        'data': {
+            'trends': all_trends,
+            'total': len(all_trends)
+        }
+    })
+
+
+@trends_bp.route('/recommendations', methods=['GET'])
+def get_recommendations():
+    """获取推荐机会（基于策略自动推荐）"""
+    # 获取推荐策略参数
+    min_trend_score = float(request.args.get('min_trend_score', 0.6))
+    min_growth_rate = float(request.args.get('min_growth_rate', 15.0))
+    min_avg_value = float(request.args.get('min_avg_value', 30.0))
+    
+    data_manager = DataManager()
+    analyzer = TrendAnalyzer()
+    
+    # 获取所有关键词
+    keywords = data_manager.get_trend_keywords()
+    
+    if not keywords:
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'recommendations': [],
+                'total': 0,
+                'message': '暂无趋势数据，请先采集数据'
+            }
+        })
+    
+    # 分析所有关键词的趋势
+    all_analyses = []
+    for keyword in keywords:
+        df = data_manager.get_trend_data(keyword=keyword, platform='google_trends')
+        
+        if not df.empty:
+            analysis = analyzer.analyze_trend_growth(df, keyword, 'google_trends')
+            trend_score = analyzer.calculate_trend_score(analysis)
+            
+            analysis_result = {
+                'keyword': keyword,
+                'platform': 'google_trends',
+                'trend_score': trend_score,
+                'growth_rate': analysis.get('growth_rate', 0),
+                'avg_value': analysis.get('avg_value', 0),
+                'volatility': analysis.get('volatility', 0),
+                'data_points': analysis.get('data_points', len(df)),
+                'trend': analysis.get('trend', 'stable')
+            }
+            all_analyses.append(analysis_result)
+    
+    # 获取推荐
+    recommendations = analyzer.recommend_opportunities(
+        all_analyses,
+        min_trend_score=min_trend_score,
+        min_growth_rate=min_growth_rate,
+        min_avg_value=min_avg_value
+    )
+    
+    return jsonify({
+        'status': 'success',
+        'data': {
+            'recommendations': recommendations,
+            'total': len(recommendations),
+            'strategy': {
+                'min_trend_score': min_trend_score,
+                'min_growth_rate': min_growth_rate,
+                'min_avg_value': min_avg_value
+            }
+        }
+    })
+
+
 @trends_bp.route('/export', methods=['GET'])
 def export_trends():
     """导出趋势数据（带分析和去重）"""

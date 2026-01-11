@@ -92,7 +92,15 @@ function initTrendsPage() {
     // 对比关键词
     $('#compareBtn').on('click', compareKeywords);
     
-    // 初始化加载
+    // 刷新推荐机会
+    $('#refreshRecommendationsBtn').on('click', loadRecommendations);
+    
+    // 刷新全部趋势数据
+    $('#refreshAllTrendsBtn').on('click', loadAllTrends);
+    
+    // 初始化加载 - 自动显示全部趋势和推荐
+    loadRecommendations();  // 优先加载推荐机会
+    loadAllTrends();        // 加载全部趋势数据
     loadCollectedKeywords();
     loadHotKeywords();
     
@@ -919,6 +927,169 @@ function exportTrendsData() {
         console.error('Export trends data error:', error);
         showMessage('导出失败: ' + error.message, 'error');
     }
+}
+
+// 加载推荐机会
+function loadRecommendations() {
+    const container = $('#recommendationsList');
+    container.html('<p class="text-gray-400 text-sm">加载中...</p>');
+    
+    $.get('/api/v1/trends/recommendations')
+        .done(function(response) {
+            if (response.status === 'success') {
+                const recommendations = response.data.recommendations || [];
+                const strategy = response.data.strategy || {};
+                
+                if (recommendations.length === 0) {
+                    container.html(`
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <p class="text-yellow-800 text-sm">
+                                <strong>暂无推荐机会</strong><br>
+                                当前没有符合推荐策略的关键词。建议：
+                                <ul class="list-disc list-inside mt-2 text-xs">
+                                    <li>采集更多关键词的趋势数据</li>
+                                    <li>调整推荐策略参数（降低阈值）</li>
+                                    <li>等待数据积累（至少需要30个数据点）</li>
+                                </ul>
+                            </p>
+                        </div>
+                    `);
+                    return;
+                }
+                
+                let html = '';
+                recommendations.forEach((rec, index) => {
+                    const badgeColor = rec.opportunity_score >= 70 ? 'bg-green-100 text-green-800' : 
+                                      rec.opportunity_score >= 50 ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800';
+                    
+                    html += `
+                        <div class="bg-white rounded-lg border-2 border-blue-200 p-4 hover:shadow-md transition-shadow">
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-lg font-bold text-gray-900">${index + 1}. ${rec.keyword}</span>
+                                        <span class="${badgeColor} text-xs font-semibold px-2 py-1 rounded-full">
+                                            机会分数: ${rec.opportunity_score.toFixed(1)}
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-2">${rec.reason}</p>
+                                    <div class="flex flex-wrap gap-3 text-xs text-gray-500">
+                                        <span>📈 增长率: <strong class="text-blue-600">${rec.growth_rate.toFixed(1)}%</strong></span>
+                                        <span>🔥 平均热度: <strong class="text-orange-600">${rec.avg_value.toFixed(1)}</strong></span>
+                                        <span>📊 趋势分数: <strong class="text-purple-600">${rec.trend_score.toFixed(2)}</strong></span>
+                                        <span>📉 波动率: <strong class="text-gray-600">${rec.volatility.toFixed(1)}%</strong></span>
+                                        <span>📅 数据点: <strong class="text-gray-600">${rec.data_points}</strong></span>
+                                    </div>
+                                </div>
+                                <button onclick="analyzeKeyword('${rec.keyword}')" 
+                                        class="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm whitespace-nowrap">
+                                    查看详情
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.html(html);
+                
+                // 显示策略信息
+                if (Object.keys(strategy).length > 0) {
+                    container.append(`
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <p class="text-xs text-gray-500">
+                                <strong>推荐策略：</strong>
+                                趋势分数 ≥ ${strategy.min_trend_score}，
+                                增长率 ≥ ${strategy.min_growth_rate}%，
+                                平均热度 ≥ ${strategy.min_avg_value}
+                            </p>
+                        </div>
+                    `);
+                }
+            } else {
+                container.html('<p class="text-red-500 text-sm">加载失败: ' + (response.message || '未知错误') + '</p>');
+            }
+        })
+        .fail(function(xhr) {
+            const errorMsg = xhr.responseJSON?.message || '网络错误';
+            container.html('<p class="text-red-500 text-sm">加载失败: ' + errorMsg + '</p>');
+        });
+}
+
+// 加载全部趋势数据
+function loadAllTrends() {
+    const container = $('#allTrendsList');
+    container.html('<p class="text-gray-400 text-sm">加载中...</p>');
+    
+    $.get('/api/v1/trends/all')
+        .done(function(response) {
+            if (response.status === 'success') {
+                const trends = response.data.trends || [];
+                $('#allTrendsCount').text(`(${trends.length})`);
+                
+                if (trends.length === 0) {
+                    container.html(`
+                        <p class="text-gray-400 text-sm">${response.data.message || '暂无趋势数据'}</p>
+                    `);
+                    return;
+                }
+                
+                let html = '';
+                trends.forEach((trend, index) => {
+                    const trendColor = trend.trend === 'rising' ? 'text-green-600' : 
+                                     trend.trend === 'slightly_rising' ? 'text-blue-600' : 
+                                     trend.trend === 'declining' ? 'text-red-600' : 'text-gray-600';
+                    const trendIcon = trend.trend === 'rising' ? '📈' : 
+                                    trend.trend === 'slightly_rising' ? '📊' : 
+                                    trend.trend === 'declining' ? '📉' : '➡️';
+                    
+                    html += `
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-semibold text-gray-900">${trend.keyword}</span>
+                                    <span class="${trendColor} text-xs">${trendIcon} ${trend.trend === 'rising' ? '上升' : trend.trend === 'slightly_rising' ? '微升' : trend.trend === 'declining' ? '下降' : '稳定'}</span>
+                                </div>
+                                <div class="flex flex-wrap gap-3 text-xs text-gray-500">
+                                    <span>增长率: <strong class="text-blue-600">${trend.growth_rate.toFixed(1)}%</strong></span>
+                                    <span>热度: <strong class="text-orange-600">${trend.avg_value.toFixed(1)}</strong></span>
+                                    <span>趋势分数: <strong class="text-purple-600">${trend.trend_score.toFixed(2)}</strong></span>
+                                    <span>数据点: ${trend.data_points}</span>
+                                </div>
+                            </div>
+                            <button onclick="analyzeKeyword('${trend.keyword}')" 
+                                    class="ml-4 px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 whitespace-nowrap">
+                                分析
+                            </button>
+                        </div>
+                    `;
+                });
+                
+                container.html(html);
+            } else {
+                container.html('<p class="text-red-500 text-sm">加载失败: ' + (response.message || '未知错误') + '</p>');
+            }
+        })
+        .fail(function(xhr) {
+            const errorMsg = xhr.responseJSON?.message || '网络错误';
+            container.html('<p class="text-red-500 text-sm">加载失败: ' + errorMsg + '</p>');
+        });
+}
+
+// 分析关键词（跳转到分析页面或显示分析结果）
+function analyzeKeyword(keyword) {
+    // 设置图表关键词并加载
+    $('#chartKeyword').val(keyword);
+    loadTrendChart();
+    
+    // 滚动到图表区域
+    setTimeout(function() {
+        const chartContainer = $('#chartContainer');
+        if (chartContainer.length) {
+            $('html, body').animate({
+                scrollTop: chartContainer.offset().top - 20
+            }, 500);
+        }
+    }, 300);
 }
 
 function compareKeywords() {

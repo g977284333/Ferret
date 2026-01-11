@@ -175,6 +175,39 @@
     </div>
 </div>
 
+<!-- 推荐机会卡片 - 自动推荐高机会关键词 -->
+<div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-md p-6 border-2 border-blue-200 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+            <h2 class="text-2xl font-bold text-gray-900">⭐ 推荐机会</h2>
+            <span class="text-xs bg-blue-600 text-white px-2 py-1 rounded-full">智能推荐</span>
+        </div>
+        <button id="refreshRecommendationsBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm">
+            🔄 刷新推荐
+        </button>
+    </div>
+    <p class="text-sm text-gray-600 mb-4">系统根据趋势分析策略自动推荐的高机会关键词</p>
+    <div id="recommendationsList" class="space-y-3">
+        <p class="text-gray-400 text-sm">加载中...</p>
+    </div>
+</div>
+
+<!-- 全部趋势数据概览 -->
+<div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+            <h2 class="text-xl font-bold text-gray-900">📊 全部趋势数据</h2>
+            <span class="text-xs text-gray-500" id="allTrendsCount">(0)</span>
+        </div>
+        <button id="refreshAllTrendsBtn" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm">
+            🔄 刷新
+        </button>
+    </div>
+    <div id="allTrendsList" class="space-y-2 max-h-96 overflow-y-auto">
+        <p class="text-gray-400 text-sm">加载中...</p>
+    </div>
+</div>
+
 <!-- 趋势数据展示 -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- 热门关键词 -->
