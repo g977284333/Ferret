@@ -107,6 +107,8 @@
 - 根据反馈决定继续或放弃
 
 **参考文档**：
+- `docs/guides/MARKET_ANALYSIS_SKILLS_DEVELOPMENT.md` - 市场分析、需求挖掘、需求分析能力提升指南（**核心文档**）
+- `docs/guides/PRACTICAL_EXERCISES.md` - 实践练习手册（**4周实践计划**）
 - `docs/guides/BEYOND_DATA_ANALYSIS.md` - 跳出数据分析的思维局限
 - `docs/guides/STOP_DEVELOPING_START_USING.md` - 停止开发，开始使用指南
 
